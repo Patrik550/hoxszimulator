@@ -1,0 +1,4384 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/x-icon" href="assets/hoxikon.ico" />
+  <title>Hox szimulátor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 14px;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      position: relative;
+      background: radial-gradient(circle at 28% 18%, rgba(56, 189, 248, 0.16), transparent 44%),
+        radial-gradient(circle at 76% 14%, rgba(139, 92, 246, 0.14), transparent 44%),
+        radial-gradient(circle at 55% 70%, rgba(34, 197, 94, 0.12), transparent 50%),
+        linear-gradient(145deg, #050914, #071022 36%, #07162c 68%, #050711);
+      color: #e6edf7;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -20%;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(59, 130, 246, 0.24), transparent 36%),
+        radial-gradient(circle at 72% 18%, rgba(99, 102, 241, 0.22), transparent 38%),
+        radial-gradient(circle at 50% 70%, rgba(14, 165, 233, 0.18), transparent 42%),
+        radial-gradient(circle at 18% 78%, rgba(16, 185, 129, 0.16), transparent 40%);
+      filter: blur(54px);
+      opacity: 0.75;
+      z-index: 0;
+      animation: ambientDrift 24s ease-in-out infinite alternate, ambientFade 18s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    .game-wrapper {
+      width: min(560px, 100%);
+      background: linear-gradient(160deg, rgba(15, 23, 42, 0.96), rgba(10, 37, 64, 0.92));
+      padding: 26px;
+      border-radius: 22px;
+      box-shadow: 0 20px 60px rgba(4, 6, 24, 0.7), inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+      text-align: center;
+      overflow: hidden;
+      isolation: isolate;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0 0 4px 0;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .tagline {
+      margin: 0 0 16px;
+      color: #cbd5f5;
+      font-size: 0.96rem;
+      letter-spacing: 0.01em;
+    }
+
+    .family-note {
+      margin: -6px 0 16px;
+      color: #a5b4fc;
+      font-size: 0.88rem;
+      letter-spacing: 0.01em;
+    }
+
+    .scoreboard {
+      position: relative;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+      background: linear-gradient(135deg, rgba(14, 116, 144, 0.28), rgba(8, 47, 73, 0.44));
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .scoreboard::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(120deg, rgba(56, 189, 248, 0.08), rgba(34, 197, 94, 0.06));
+      pointer-events: none;
+    }
+
+    .score-icons-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex: 1 1 auto;
+      min-width: 220px;
+    }
+
+    .score-icons-wrapper span {
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: #e2e8f0;
+      background: rgba(148, 163, 184, 0.15);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 4px 10px;
+      border-radius: 10px;
+    }
+
+
+    #scoreIcons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 4px 0;
+    }
+
+    .dislike-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(14, 165, 233, 0.45));
+      border: 1px solid rgba(56, 189, 248, 0.65);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .dislike-number {
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      color: #e0f2fe;
+      font-variant-numeric: tabular-nums;
+      min-width: 2.6ch;
+      text-align: right;
+      display: inline-block;
+    }
+
+    .dislike-img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+    }
+
+    .best-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .best-pill-easy {
+      border: 1px solid rgba(34, 197, 94, 0.45);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(21, 128, 61, 0.18));
+      color: #86efac;
+      box-shadow: 0 10px 30px rgba(22, 163, 74, 0.2);
+    }
+
+    .best-pill-normal {
+      border: 1px solid rgba(250, 204, 21, 0.5);
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(234, 179, 8, 0.2));
+      color: #facc15;
+      box-shadow: 0 10px 30px rgba(234, 179, 8, 0.2);
+    }
+
+    .best-pill-hard {
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+      color: #fca5a5;
+      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2);
+    }
+
+    .best-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .best-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .best-label {
+      font-weight: 700;
+      color: #cbd5f5;
+      min-width: 140px;
+    }
+
+    .best-pill {
+      font-size: 1rem;
+    }
+
+    .canvas-shell {
+      position: relative;
+    }
+
+    .score-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .game-over {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 16px;
+    }
+
+    .game-over-title {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #ef4444;
+      text-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+      letter-spacing: 0.04em;
+    }
+
+    .game-over-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .settings-row {
+      display: grid;
+      gap: 12px;
+      align-items: stretch;
+      justify-items: start;
+      margin-bottom: 12px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      text-align: left;
+    }
+
+    .difficulty-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    label,
+    .settings-label {
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      cursor: text;
+    }
+
+    /* Keep difficulty box typography consistent */
+    .settings-row label,
+    .settings-row .settings-label,
+    .settings-row .best-label {
+      color: #e2e8f0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    select {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.33);
+      color: #e2e8f0;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 1rem;
+      outline: none;
+      min-width: 140px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    /* Improved outline: subtle on hover, stronger on focus */
+    select:hover {
+      border-color: rgba(56, 189, 248, 0.7);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      background: rgba(30, 41, 59, 1);
+    }
+
+    select:focus-visible {
+      border-color: rgba(59, 130, 246, 0.95);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), 0 0 0 6px rgba(15, 23, 42, 0.35);
+      background: rgba(15, 23, 42, 0.95);
+      outline: none;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 16px;
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      background: #0ea5e9;
+      margin: 0 auto 10px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .status {
+      min-height: 1.5em;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #e5e7eb;
+    }
+
+    .controls {
+      font-size: 0.94rem;
+      color: #e2e8f0;
+      padding: 10px 12px;
+      background: linear-gradient(120deg, rgba(15, 23, 42, 0.65), rgba(8, 47, 73, 0.6));
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 12px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .controls strong {
+      color: #a5b4fc;
+    }
+
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 7, 18, 0.82);
+      backdrop-filter: blur(6px);
+      z-index: 10;
+    }
+
+    .menu-card {
+      background: radial-gradient(circle at 12% 10%, rgba(59, 130, 246, 0.12), transparent 35%),
+        radial-gradient(circle at 90% 12%, rgba(16, 185, 129, 0.12), transparent 30%),
+        linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(8, 47, 73, 0.9));
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+      padding: 22px 22px 96px;
+      border-radius: 18px;
+      width: min(520px, 92vw);
+      overflow: visible;
+      position: relative;
+    }
+
+    .menu-card h2 {
+      margin: 0 0 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+/* Bird selector: 3 columns, scrollable when overflowing */
+#birdOptions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: 220px; /* single row visible; extra padding for outlines */
+  overflow-y: auto;
+  padding: 8px 6px 10px 2px; /* allow outlines and shadows without clipping */
+  scroll-padding: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.65) rgba(15, 23, 42, 0.6);
+}
+
+#birdOptions::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+#birdOptions::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 999px;
+  margin: 4px 0; /* round off the ends */
+}
+
+#birdOptions::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.85), rgba(34, 197, 94, 0.7));
+  border-radius: 999px;
+  border: 2px solid rgba(15, 23, 42, 0.6);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+#birdOptions::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 1), rgba(34, 197, 94, 0.9));
+}
+
+#birdOptions::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+
+    .menu-meta {
+      position: absolute;
+      left: 14px;
+      bottom: 12px;
+      margin: 0;
+      padding: 4px 6px;
+      text-align: left;
+      color: rgba(203, 213, 225, 0.68);
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      font-size: 0.82rem;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+    }
+
+    .menu-meta .label {
+      color: rgba(148, 163, 184, 0.65);
+      margin-right: 6px;
+    }
+
+    .menu-meta .version {
+      color: rgba(56, 189, 248, 0.75);
+      margin-left: 8px;
+    }
+
+    .stats-btn {
+      position: absolute;
+      right: 14px;
+      bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(145deg, rgba(34, 197, 94, 0.16), rgba(59, 130, 246, 0.18));
+      color: #e6edf7;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .stats-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(59, 130, 246, 0.55);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+    }
+
+    .stats-panel {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 18px;
+      width: min(520px, 94%);
+      background: linear-gradient(160deg, rgba(8, 47, 73, 0.94), rgba(15, 23, 42, 0.96));
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      border-radius: 16px;
+      padding: 14px 16px 14px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+      z-index: 2;
+      backdrop-filter: blur(8px);
+      overflow: hidden;
+    }
+
+    .stats-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.2), transparent 40%),
+        radial-gradient(circle at 88% 18%, rgba(34, 197, 94, 0.16), transparent 36%);
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .stats-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stats-header h4 {
+      margin: 0;
+      letter-spacing: 0.04em;
+    }
+
+    .stats-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .stats-columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .stats-block {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.78), rgba(8, 47, 73, 0.78));
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 12px;
+      padding: 12px 12px 10px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 14px 30px rgba(0, 0, 0, 0.28);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stats-block h5 {
+      margin: 0 0 10px;
+      color: #e0f2fe;
+      letter-spacing: 0.03em;
+      font-size: 0.98rem;
+      position: relative;
+    }
+
+    .stats-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .stats-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: linear-gradient(120deg, rgba(59, 130, 246, 0.08), rgba(34, 197, 94, 0.08));
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 10px;
+      padding: 8px 10px 8px 12px;
+      font-size: 0.95rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .stats-list li.stat-diff-easy {
+      background: linear-gradient(120deg, rgba(34, 197, 94, 0.24), rgba(13, 148, 136, 0.16));
+      box-shadow: 0 0 40px rgba(34, 197, 94, 0.32), inset 0 0 0 1px rgba(34, 197, 94, 0.24);
+      background-size: 360% 360%;
+      background-position: 0% 40%;
+      animation: driftGreen 5.5s ease-in-out infinite;
+    }
+
+    .stats-list li.stat-diff-easy::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      background: radial-gradient(circle at 30% 50%, rgba(34, 197, 94, 0.42), transparent 55%);
+      mix-blend-mode: screen;
+      filter: blur(18px);
+      opacity: 0.85;
+      animation: pulseEasy 4.5s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    .stats-list li.stat-diff-normal {
+      background: linear-gradient(120deg, rgba(234, 179, 8, 0.24), rgba(249, 115, 22, 0.16));
+      box-shadow: 0 0 40px rgba(234, 179, 8, 0.28), inset 0 0 0 1px rgba(234, 179, 8, 0.24);
+      background-size: 360% 360%;
+      background-position: 50% 0%;
+      animation: driftAmber 5.5s ease-in-out infinite;
+    }
+
+    .stats-list li.stat-diff-normal::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      background: radial-gradient(circle at 70% 40%, rgba(234, 179, 8, 0.44), transparent 55%);
+      mix-blend-mode: screen;
+      filter: blur(18px);
+      opacity: 0.9;
+      animation: pulseAmber 5s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    .stats-list li.stat-diff-hard {
+      background: linear-gradient(120deg, rgba(239, 68, 68, 0.24), rgba(168, 85, 247, 0.16));
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.28), inset 0 0 0 1px rgba(239, 68, 68, 0.24);
+      background-size: 360% 360%;
+      background-position: 50% 100%;
+      animation: driftRed 5.5s ease-in-out infinite;
+    }
+
+    .stats-list li.stat-diff-hard::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      background: radial-gradient(circle at 40% 65%, rgba(239, 68, 68, 0.42), transparent 55%);
+      mix-blend-mode: screen;
+      filter: blur(20px);
+      opacity: 0.9;
+      animation: pulseRed 5s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes ambientGlowGreen {
+      0% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.14), inset 0 0 0 1px rgba(34, 197, 94, 0.18);
+      }
+      100% {
+        box-shadow: 0 0 34px rgba(16, 185, 129, 0.26), inset 0 0 0 1px rgba(16, 185, 129, 0.28);
+      }
+    }
+
+    @keyframes ambientGlowAmber {
+      0% {
+        box-shadow: 0 0 20px rgba(234, 179, 8, 0.14), inset 0 0 0 1px rgba(234, 179, 8, 0.2);
+      }
+      100% {
+        box-shadow: 0 0 34px rgba(249, 115, 22, 0.22), inset 0 0 0 1px rgba(249, 115, 22, 0.28);
+      }
+    }
+
+    @keyframes ambientGlowRed {
+      0% {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.14), inset 0 0 0 1px rgba(239, 68, 68, 0.2);
+      }
+      100% {
+        box-shadow: 0 0 34px rgba(168, 85, 247, 0.22), inset 0 0 0 1px rgba(168, 85, 247, 0.3);
+      }
+    }
+
+    @keyframes driftGreen {
+      0% { background-position: 0% 40%; }
+      50% { background-position: 100% 60%; }
+      100% { background-position: 0% 40%; }
+    }
+
+    @keyframes driftAmber {
+      0% { background-position: 80% 20%; }
+      50% { background-position: 10% 60%; }
+      100% { background-position: 80% 20%; }
+    }
+
+    @keyframes driftRed {
+      0% { background-position: 40% 90%; }
+      50% { background-position: 70% 10%; }
+      100% { background-position: 40% 90%; }
+    }
+
+    @keyframes pulseEasy {
+      0% { transform: scale(0.96) translate(0, 0); opacity: 0.55; }
+      100% { transform: scale(1.08) translate(6px, -4px); opacity: 0.9; }
+    }
+
+    @keyframes pulseAmber {
+      0% { transform: scale(0.94) translate(0, 0); opacity: 0.55; }
+      100% { transform: scale(1.1) translate(-6px, 5px); opacity: 0.92; }
+    }
+
+    @keyframes pulseRed {
+      0% { transform: scale(0.95) translate(0, 0); opacity: 0.55; }
+      100% { transform: scale(1.1) translate(5px, -6px); opacity: 0.95; }
+    }
+
+    .stats-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.8), rgba(34, 197, 94, 0.8));
+      opacity: 0.8;
+    }
+
+    .stats-label {
+      color: #e2e8f0;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .stats-value {
+      color: #f8fafc;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+    }
+
+    .stats-value-shrink {
+      max-width: 62%;
+      flex: 0 1 62%;
+      text-align: right;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .stats-muted {
+      color: rgba(203, 213, 225, 0.72);
+      text-align: center;
+    }
+
+    .option-tile {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(26, 44, 74, 0.65);
+      border-radius: 14px;
+      padding: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-tile.selected {
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .option-tile::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(34, 197, 94, 0.06));
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+
+    .option-tile:hover::after {
+      opacity: 1;
+    }
+
+    .tile-preview {
+      width: 100%;
+      background-size: cover;
+      background-position: center;
+      background-color: rgba(15, 23, 42, 0.7);
+      background-repeat: no-repeat;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .preview-bg {
+      aspect-ratio: 16 / 9;
+    }
+
+    .preview-bird {
+      aspect-ratio: 1 / 1;
+      background-color: rgba(15, 23, 42, 0.8);
+      background-repeat: no-repeat;
+      background-size: 80%;
+      background-position: center;
+    }
+
+    .tile-glow::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(34, 197, 94, 0.12));
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+
+    .tile-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(15, 23, 42, 0.8);
+      color: #e2e8f0;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      letter-spacing: 0.02em;
+    }
+
+    .bg-thumb-animated {
+      background:
+        radial-gradient(circle at 22% 24%, #7dd3fc 0%, #0ea5e9 22%, transparent 46%),
+        radial-gradient(circle at 78% 18%, #34d399 0%, #0ea5e9 26%, transparent 52%),
+        linear-gradient(180deg, #25c2ff 0%, #1083d8 38%, #0b5b9a 62%, #0b3d6c 78%, #0f1f3a 90%, #0f172a 100%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 46%, rgba(0, 0, 0, 0.18) 100%);
+      background-size: 115% 115%, 115% 115%, 100% 100%, 100% 100%;
+      background-position: center top, center top, center, center;
+      background-repeat: no-repeat;
+    }
+
+    .bg-thumb-custom1 {
+      background-image: url('assets/custom.png');
+    }
+
+    .bg-thumb-custom2 {
+      background-image: url('assets/custom2.png');
+    }
+
+    .bg-thumb-custom3 {
+      background-image: url('assets/custom3.png');
+    }
+
+    .bg-thumb-custom4 {
+      background-image: url('assets/custom4.png');
+    }
+
+    .bird-thumb-1 {
+      background-image: url('assets/custom-bird.png');
+    }
+
+    .bird-thumb-2 {
+      background-image: url('assets/custom-bird2.png');
+    }
+
+    .bird-thumb-3 {
+      background-image: url('assets/custom-bird3.png');
+    }
+
+    .bird-thumb-4 {
+      background-image: url('assets/custom-bird4.png');
+    }
+
+    .bird-thumb-5 {
+      background-image: url('assets/custom-bird5.png');
+    }
+
+    .bird-thumb-6 {
+      background-image: url('assets/custom-bird6.png');
+    }
+
+    .bird-thumb-7 {
+      background-image: url('assets/custom-bird7.png');
+    }
+
+    .bird-thumb-8 {
+      background-image: url('assets/custom-bird8.png');
+    }
+
+    .bird-thumb-9 {
+      background-image: url('assets/custom-bird9.png');
+    }
+
+    .bird-thumb-10 {
+      background-image: url('assets/custom-bird10.png');
+    }
+
+    .bird-thumb-11 {
+      background-image: url('assets/custom-bird11.png');
+    }
+
+    .bird-thumb-12 {
+      background-image: url('assets/custom-bird12.png');
+    }
+
+    .bird-thumb-13 {
+      background-image: url('assets/custom-bird13.png');
+    }
+
+    .bird-thumb-14 {
+      background-image: url('assets/custom-bird14.png');
+    }
+
+    .bird-thumb-15 {
+      background-image: url('assets/custom-bird15.png');
+    }
+
+    .bird-thumb-16 {
+      background-image: url('assets/custom-bird16.png');
+    }
+
+    .bird-thumb-17 {
+      background-image: url('assets/custom-bird17.png');
+    }
+
+    .bird-thumb-18 {
+      background-image: url('assets/custom-bird18.png');
+    }
+
+    .bird-thumb-19 {
+      background-image: url('assets/custom-bird19.png');
+    }
+
+    .bird-thumb-20 {
+      background-image: url('assets/custom-bird20.png');
+    }
+
+    .bird-thumb-21 {
+      background-image: url('assets/custom-bird21.png');
+    }
+
+    .bird-thumb-22 {
+      background-image: url('assets/custom-bird22.png');
+    }
+
+    .bird-thumb-23 {
+      background-image: url('assets/custom-bird23.png');
+    }
+
+    .bird-thumb-24 {
+      background-image: url('assets/custom-bird24.png');
+    }
+
+
+    .option-label {
+      font-weight: 700;
+    }
+
+    .option-sub {
+      color: #cbd5f5;
+      font-size: 0.9rem;
+    }
+
+    .start-btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border: none;
+      color: #031b0e;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 14px 40px rgba(34, 197, 94, 0.3);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #031b0e;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+      box-shadow: 0 12px 24px rgba(34, 197, 94, 0.22);
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      color: #022c43;
+      box-shadow: 0 12px 24px rgba(56, 189, 248, 0.22);
+    }
+
+    button:hover {
+      transform: translateY(-1.5px);
+      box-shadow: 0 10px 24px rgba(34, 197, 94, 0.24);
+      filter: brightness(1.05);
+    }
+
+    button:active {
+      transform: translateY(0);
+      filter: brightness(0.98);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+    }
+
+    button:focus-visible {
+      outline: 2px solid rgba(56, 189, 248, 0.9);
+      outline-offset: 3px;
+    }
+
+    .note {
+      font-size: 0.85rem;
+      margin-top: 14px;
+      color: #94a3b8;
+    }
+
+    .note code {
+      background: rgba(148, 163, 184, 0.25);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #e2e8f0;
+    }
+
+    .audio-panel {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+
+    .slider-row label {
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .slider-row input[type="range"] {
+      accent-color: #22c55e;
+      width: min(220px, 100%);
+    }
+
+    .leaderboard-card {
+      position: relative;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.16), transparent 42%),
+        radial-gradient(circle at 85% 0%, rgba(34, 197, 94, 0.14), transparent 40%),
+        linear-gradient(180deg, rgba(8, 47, 73, 0.85), rgba(8, 47, 73, 0.7));
+      border-radius: 16px;
+      padding: 14px 16px 16px;
+      margin: 12px auto 16px;
+      text-align: center;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.3), inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+      max-width: 480px;
+      overflow: hidden;
+      backdrop-filter: blur(6px);
+      isolation: isolate;
+    }
+
+    .leaderboard-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(45, 212, 191, 0.06));
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .leaderboard-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      text-align: left;
+      z-index: 1;
+    }
+
+    .leaderboard-title {
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #e0f2fe;
+    }
+
+    .leaderboard-sub {
+      color: #cbd5f5;
+      font-size: 0.9rem;
+      margin-top: 2px;
+      opacity: 0.9;
+    }
+
+    .leaderboard-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      background: rgba(8, 47, 73, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 12px;
+      padding: 6px 8px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .leaderboard-list {
+      position: relative;
+      margin: 0;
+      padding: 6px 0 0;
+      display: grid;
+      gap: 8px;
+      counter-reset: rank;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+      list-style: none;
+      z-index: 1;
+    }
+
+    .leaderboard-list li {
+      position: relative;
+      counter-increment: rank;
+      padding: 10px 12px 10px 68px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(14, 165, 233, 0.18), rgba(8, 47, 73, 0.85));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 750;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .leaderboard-list li:hover {
+      transform: translateY(-2px);
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.3);
+    }
+
+    .leaderboard-list li::before {
+      content: '#' counter(rank);
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.32), rgba(59, 130, 246, 0.28));
+      border: 1px solid rgba(56, 189, 248, 0.55);
+      color: #e0f2fe;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .leaderboard-list li:nth-child(1) {
+      background: linear-gradient(120deg, rgba(234, 179, 8, 0.22), rgba(14, 165, 233, 0.2));
+      border-color: rgba(234, 179, 8, 0.6);
+      box-shadow: 0 16px 28px rgba(234, 179, 8, 0.18);
+    }
+
+    .leaderboard-list li:nth-child(1)::before {
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.48), rgba(249, 115, 22, 0.42));
+      border-color: rgba(234, 179, 8, 0.8);
+      color: #0b1224;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .leaderboard-list li:nth-child(2) {
+      background: linear-gradient(120deg, rgba(148, 163, 184, 0.2), rgba(56, 189, 248, 0.18));
+      border-color: rgba(148, 163, 184, 0.7);
+    }
+
+    .leaderboard-list li:nth-child(2)::before {
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.5), rgba(100, 116, 139, 0.45));
+      border-color: rgba(148, 163, 184, 0.85);
+      color: #0f172a;
+    }
+
+    .leaderboard-list li:nth-child(3) {
+      background: linear-gradient(120deg, rgba(248, 113, 113, 0.18), rgba(14, 165, 233, 0.15));
+      border-color: rgba(248, 113, 113, 0.6);
+    }
+
+    .leaderboard-list li:nth-child(3)::before {
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.48), rgba(248, 180, 80, 0.44));
+      border-color: rgba(248, 113, 113, 0.78);
+    }
+
+    .leaderboard-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1 1 auto;
+      color: #e2e8f0;
+      letter-spacing: 0.01em;
+    }
+
+    .leaderboard-score {
+      color: #0b1224;
+      font-variant-numeric: tabular-nums;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #facc15, #f59e0b);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 18px rgba(250, 204, 21, 0.18);
+      min-width: 110px;
+      text-align: center;
+    }
+
+    .leaderboard-status {
+      min-height: 20px;
+      font-size: 0.9rem;
+      color: #cbd5f5;
+      margin: 0 0 10px;
+      text-align: left;
+      padding-left: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .leaderboard-status.error {
+      color: #fca5a5;
+    }
+
+    .leaderboard-submit {
+      background: rgba(8, 47, 73, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 12px;
+      padding: 12px;
+      width: min(360px, 100%);
+    }
+
+    .leaderboard-submit h4 {
+      margin: 0 0 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .leaderboard-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .leaderboard-name-row label {
+      min-width: 64px;
+      text-align: right;
+      color: #e2e8f0;
+      font-weight: 700;
+    }
+
+    .leaderboard-name-row .text-input {
+      flex: 1 1 auto;
+      width: auto;
+    }
+
+    .text-input {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #e2e8f0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      width: 100%;
+      font-size: 1rem;
+      outline: none;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+
+    .text-input:focus {
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+
+    .small {
+      padding: 8px 12px;
+      font-size: 0.95rem;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 520px) {
+      .game-wrapper {
+        padding: 20px;
+      }
+      .scoreboard {
+        gap: 6px;
+      }
+      select {
+        width: 100%;
+      }
+    }
+
+    @keyframes ambientDrift {
+      0% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      50% {
+        transform: translate3d(-3%, 1.5%, 0) scale(1.07);
+      }
+      100% {
+        transform: translate3d(3%, -2.5%, 0) scale(1.1);
+      }
+    }
+
+    @keyframes ambientFade {
+      0% {
+        opacity: 0.65;
+      }
+      50% {
+        opacity: 0.85;
+      }
+      100% {
+        opacity: 0.72;
+      }
+    }
+  </style>
+</head>
+<body>
+    <div class="game-wrapper">
+    <h1>Hox szimulátor</h1>
+    <p class="tagline">Gyűjts minél több diszlájkot!</p>
+    <p class="family-note" aria-label="Családbarát játék">Családbarát játék egy családbarát csatornáról ✅</p>
+    <div class="settings-row">
+      <div class="difficulty-row">
+        <span class="settings-label">Nehézség:</span>
+        <select id="difficultySelect" aria-label="Nehezseg kivalasztasa">
+          <option value="easy" selected>Incel</option>
+          <option value="normal">Védenc</option>
+          <option value="hard">Evelin</option>
+        </select>
+      </div>
+      <div class="best-row" aria-live="polite">
+        <span class="best-label">Személyes legjobb:</span>
+        <div class="best-grid">
+          <div class="best-pill best-pill-easy">Incel: <span id="bestEasy">0</span></div>
+          <div class="best-pill best-pill-normal">Védenc: <span id="bestNormal">0</span></div>
+          <div class="best-pill best-pill-hard">Evelin: <span id="bestHard">0</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="canvas-shell">
+      <canvas id="gameCanvas" width="440" height="620" role="img" aria-label="Hox szimulátor map"></canvas>
+      <div class="score-overlay" aria-live="polite">
+        <div id="scoreIcons">
+          <div class="dislike-count">
+            <img id="dislikeIcon" class="dislike-img" alt="Dislike ikon" />
+            <span id="scoreNumber" class="dislike-number">0</span>
+          </div>
+        </div>
+      </div>
+      <div id="gameOverOverlay" class="game-over hidden" role="alert">
+        <div class="game-over-title">Elbuktál</div>
+        <div class="game-over-actions">
+          <button id="retryBtn" type="button">Újra</button>
+          <button id="menuBtn" type="button" class="secondary">Vissza a menübe</button>
+        </div>
+        <div class="leaderboard-submit">
+          <h4>Pontszám feltöltése a ranglistára</h4>
+          <div class="leaderboard-name-row">
+            <label for="playerNameInput">Név:</label>
+            <input id="playerNameInput" class="text-input" type="text" maxlength="24" placeholder="Add meg a nevet" aria-label="Név a ranglistán" />
+          </div>
+          <button id="submitScoreBtn" type="button" class="small" style="margin-top:8px;">Feltöltés a ranglistára</button>
+          <div id="submissionStatus" class="leaderboard-status"></div>
+        </div>
+      </div>
+    </div>
+    <div class="controls"><strong>Space</strong> / <strong>kattints</strong> a repüléshez | <strong>P</strong> szünet | <strong>R</strong> újraindítás</div>
+    <div class="audio-panel">
+      <div class="slider-row">
+        <label for="gameVolume">Játék hangereje</label>
+        <input id="gameVolume" type="range" min="0" max="100" value="100" aria-label="Játék hangereje" />
+      </div>
+      <div class="slider-row hidden" id="musicVolumeRow">
+        <label for="musicVolume">Zene hangereje</label>
+        <input id="musicVolume" type="range" min="0" max="100" value="8" aria-label="Háttérzene hangereje" />
+      </div>
+    </div>
+    <div class="leaderboard-card" aria-live="polite">
+      <div class="leaderboard-header">
+        <div>
+          <div class="leaderboard-title">Globális ranglista</div>
+          <div class="leaderboard-sub">Top pontszámok nehézség szerint:</div>
+        </div>
+        <div class="leaderboard-controls">
+          <label class="sr-only" for="leaderboardDifficulty">Ranglista nehézség</label>
+          <select id="leaderboardDifficulty" aria-label="Ranglista nehézség kiválasztása">
+            <option value="easy" selected>Incel</option>
+            <option value="normal">Védenc</option>
+            <option value="hard">Evelin</option>
+          </select>
+          <button id="leaderboardRefreshBtn" type="button" class="secondary small">Frissítés</button>
+        </div>
+      </div>
+      <div id="leaderboardStatus" class="leaderboard-status"></div>
+      <ol id="leaderboardList" class="leaderboard-list" aria-label="Ranglista legjobb pontjai"></ol>
+    </div>
+  </div>
+
+  <div class="menu-overlay" id="menuOverlay">
+    <div class="menu-card">
+      <h2>Hox szimulátor - Főmenü</h2>
+      <p class="controls" style="margin-bottom:10px;">Válassz egy hátteret és egy fejet, majd indítsd.</p>
+      <h3 style="margin:6px 0;">Háttér</h3>
+      <div class="menu-grid" id="bgOptions">
+        <div class="option-tile selected" data-bg="animated">
+          <div class="tile-preview preview-bg bg-thumb-animated tile-glow" aria-hidden="true">
+            <span class="tile-badge">Mozgó</span>
+          </div>
+          <span class="option-label">Animáciás</span>
+        </div>
+        <div class="option-tile" data-bg="custom1">
+          <div class="tile-preview preview-bg bg-thumb-custom1" aria-hidden="true"></div>
+          <span class="option-label">A raktár</span>
+        </div>
+        <div class="option-tile" data-bg="custom2">
+          <div class="tile-preview preview-bg bg-thumb-custom2" aria-hidden="true"></div>
+          <span class="option-label">Macskaól</span>
+        </div>
+        <div class="option-tile" data-bg="custom3">
+          <div class="tile-preview preview-bg bg-thumb-custom3" aria-hidden="true"></div>
+          <span class="option-label">Benidorm</span>
+        </div>
+        <div class="option-tile" data-bg="custom4">
+          <div class="tile-preview preview-bg bg-thumb-custom4" aria-hidden="true"></div>
+          <span class="option-label">Ámerika</span>
+        </div>
+      </div>
+
+      <h3 style="margin:6px 0;">Fejek</h3>
+      <div class="menu-grid" id="birdOptions">
+        <div class="option-tile selected" data-bird="bird1">
+          <div class="tile-preview preview-bird bird-thumb-1 tile-glow" aria-hidden="true">
+            <span class="tile-badge">Alapértelmezett</span>
+          </div>
+          <span class="option-label">Auti kox</span>
+        </div>
+        <div class="option-tile" data-bird="bird2">
+          <div class="tile-preview preview-bird bird-thumb-2" aria-hidden="true"></div>
+          <span class="option-label">Az ártatlan</span>
+        </div>
+        <div class="option-tile" data-bird="bird3">
+          <div class="tile-preview preview-bird bird-thumb-3" aria-hidden="true"></div>
+          <span class="option-label">Külföldön</span>
+        </div>
+        <div class="option-tile" data-bird="bird4">
+          <div class="tile-preview preview-bird bird-thumb-4" aria-hidden="true"></div>
+          <span class="option-label">A védenc</span>
+        </div>
+        <div class="option-tile" data-bird="bird5">
+          <div class="tile-preview preview-bird bird-thumb-5" aria-hidden="true"></div>
+          <span class="option-label">Vicsorgós</span>
+        </div>
+        <div class="option-tile" data-bird="bird6">
+          <div class="tile-preview preview-bird bird-thumb-6" aria-hidden="true"></div>
+          <span class="option-label">Gondolatgyár</span>
+        </div>
+        <div class="option-tile" data-bird="bird7">
+          <div class="tile-preview preview-bird bird-thumb-7" aria-hidden="true"></div>
+          <span class="option-label">Dzsóker</span>
+        </div>
+        <div class="option-tile" data-bird="bird8">
+          <div class="tile-preview preview-bird bird-thumb-8" aria-hidden="true"></div>
+          <span class="option-label">Véged van troll</span>
+        </div>
+        <div class="option-tile" data-bird="bird9">
+          <div class="tile-preview preview-bird bird-thumb-9" aria-hidden="true"></div>
+          <span class="option-label">Grrr</span>
+        </div>
+        <div class="option-tile" data-bird="bird10">
+          <div class="tile-preview preview-bird bird-thumb-10" aria-hidden="true"></div>
+          <span class="option-label">Augusztus 20.</span>
+        </div>
+        <div class="option-tile" data-bird="bird11">
+          <div class="tile-preview preview-bird bird-thumb-11" aria-hidden="true"></div>
+          <span class="option-label">Meló van?</span>
+        </div>
+        <div class="option-tile" data-bird="bird12">
+          <div class="tile-preview preview-bird bird-thumb-12" aria-hidden="true"></div>
+          <span class="option-label">West side</span>
+        </div>
+        <div class="option-tile" data-bird="bird13">
+          <div class="tile-preview preview-bird bird-thumb-13" aria-hidden="true"></div>
+          <span class="option-label">Nyeméjtyem</span>
+        </div>
+        <div class="option-tile" data-bird="bird14">
+          <div class="tile-preview preview-bird bird-thumb-14" aria-hidden="true"></div>
+          <span class="option-label">Mafia</span>
+        </div>
+        <div class="option-tile" data-bird="bird15">
+          <div class="tile-preview preview-bird bird-thumb-15" aria-hidden="true"></div>
+          <span class="option-label">Tiltááás</span>
+        </div>
+        <div class="option-tile" data-bird="bird16">
+          <div class="tile-preview preview-bird bird-thumb-16" aria-hidden="true"></div>
+          <span class="option-label">Vége van, kicsi</span>
+        </div>
+        <div class="option-tile" data-bird="bird17">
+          <div class="tile-preview preview-bird bird-thumb-17" aria-hidden="true"></div>
+          <span class="option-label">SWAG</span>
+        </div>
+        <div class="option-tile" data-bird="bird18">
+          <div class="tile-preview preview-bird bird-thumb-18" aria-hidden="true"></div>
+          <span class="option-label">Én nyertem!</span>
+        </div>
+        <div class="option-tile" data-bird="bird19">
+          <div class="tile-preview preview-bird bird-thumb-19" aria-hidden="true"></div>
+          <span class="option-label">Kopaszkutya</span>
+        </div>
+        <div class="option-tile" data-bird="bird20">
+          <div class="tile-preview preview-bird bird-thumb-20" aria-hidden="true"></div>
+          <span class="option-label">Huh?</span>
+        </div>
+        <div class="option-tile" data-bird="bird21">
+          <div class="tile-preview preview-bird bird-thumb-21" aria-hidden="true"></div>
+          <span class="option-label">Autipajzsos</span>
+        </div>
+        <div class="option-tile" data-bird="bird22">
+          <div class="tile-preview preview-bird bird-thumb-22" aria-hidden="true"></div>
+          <span class="option-label">Torz selejt</span>
+        </div>
+        <div class="option-tile" data-bird="bird23">
+          <div class="tile-preview preview-bird bird-thumb-23" aria-hidden="true"></div>
+          <span class="option-label">Patkány</span>
+        </div>
+        <div class="option-tile" data-bird="bird24">
+          <div class="tile-preview preview-bird bird-thumb-24" aria-hidden="true"></div>
+          <span class="option-label">Retard skizo</span>
+        </div>
+      </div>
+      <div class="slider-row" style="margin-top:6px; background:rgba(8,47,73,0.5);">
+        <label for="musicToggle">Háttérzene</label>
+        <input id="musicToggle" type="checkbox" aria-label="Háttérzene kapcsoló" />
+      </div>
+      <button class="start-btn" id="startBtn">Játék indítása</button>
+      <button id="statsBtn" type="button" class="stats-btn">Statisztikák</button>
+      <div id="statsPanel" class="stats-panel hidden" aria-live="polite">
+        <div class="stats-header">
+          <h4>Közösségi és saját statisztikák</h4>
+          <div class="stats-actions">
+            <button id="statsRefreshBtn" type="button" class="secondary small">Frissítés</button>
+            <button id="statsCloseBtn" type="button" class="secondary small">Bezárás</button>
+          </div>
+        </div>
+        <div class="stats-columns">
+          <div class="stats-block">
+            <h5>Közösség</h5>
+            <ul id="communityStatsList" class="stats-list"></ul>
+          </div>
+          <div class="stats-block">
+            <h5>Saját</h5>
+            <ul id="personalStatsList" class="stats-list"></ul>
+          </div>
+        </div>
+        <div id="statsStatus" class="leaderboard-status"></div>
+      </div>
+      <div class="menu-meta" aria-label="Credits">
+        <span class="label"></span>
+        <span class="name">Patrik550</span>
+        <span class="version">V1.0</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.HOX_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBQdDDq4cn6GTn89fTff7P5x8h9lD_hKLY",
+      authDomain: "hoxszimulator.firebaseapp.com",
+      projectId: "hoxszimulator",
+      storageBucket: "hoxszimulator.firebasestorage.app",
+      messagingSenderId: "73045267562",
+      appId: "1:73045267562:web:2a4017195ea1e4e8e76613",
+      measurementId: "G-41VNP820KQ",
+    };
+
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const gameOverOverlay = document.getElementById('gameOverOverlay');
+      const retryBtn = document.getElementById('retryBtn');
+      const menuBtn = document.getElementById('menuBtn');
+      const bestEls = {
+        easy: document.getElementById('bestEasy'),
+        normal: document.getElementById('bestNormal'),
+        hard: document.getElementById('bestHard'),
+      };
+      const difficultySelect = document.getElementById('difficultySelect');
+      const scoreNumber = document.getElementById('scoreNumber');
+      const dislikeIconEl = document.getElementById('dislikeIcon');
+      const menuOverlay = document.getElementById('menuOverlay');
+      const startBtn = document.getElementById('startBtn');
+      const bgOptions = document.getElementById('bgOptions');
+      const birdOptions = document.getElementById('birdOptions');
+      const musicToggle = document.getElementById('musicToggle');
+      const gameVolumeSlider = document.getElementById('gameVolume');
+      const musicVolumeSlider = document.getElementById('musicVolume');
+      const musicVolumeRow = document.getElementById('musicVolumeRow');
+      const playerNameInput = document.getElementById('playerNameInput');
+      const submitScoreBtn = document.getElementById('submitScoreBtn');
+      const submissionStatusEl = document.getElementById('submissionStatus');
+      const statsBtn = document.getElementById('statsBtn');
+      const statsPanel = document.getElementById('statsPanel');
+      const statsCloseBtn = document.getElementById('statsCloseBtn');
+      const statsRefreshBtn = document.getElementById('statsRefreshBtn');
+      const statsStatusEl = document.getElementById('statsStatus');
+      const communityStatsList = document.getElementById('communityStatsList');
+      const personalStatsList = document.getElementById('personalStatsList');
+      const backgroundLabels = buildOptionLabelMap(bgOptions, 'bg');
+      const backgroundOrder = buildOptionOrder(bgOptions, 'bg');
+      const birdLabels = buildOptionLabelMap(birdOptions, 'bird');
+      const birdOrder = buildOptionOrder(birdOptions, 'bird');
+      const leaderboardList = document.getElementById('leaderboardList');
+      const leaderboardStatusEl = document.getElementById('leaderboardStatus');
+      const leaderboardDifficultySelect = document.getElementById('leaderboardDifficulty');
+      const leaderboardRefreshBtn = document.getElementById('leaderboardRefreshBtn');
+      const backgroundImages = {
+        custom1: { image: new Image(), ready: false, src: 'assets/custom.png' },
+        custom2: { image: new Image(), ready: false, src: 'assets/custom2.png' },
+        custom3: { image: new Image(), ready: false, src: 'assets/custom3.png' },
+        custom4: { image: new Image(), ready: false, src: 'assets/custom4.png' },
+      };
+      const collectSoundFolder = 'assets/sfx/collect/';
+      const baseCollectVolume = 0.65;
+      const baseDeathVolume = 0.8;
+      const baseMusicVolume = 0.08;
+      const collectSoundFiles = [
+        'collect1.mp3',
+        'collect2.mp3',
+        'collect3.mp3',
+        'collect4.mp3',
+        'collect5.mp3',
+        'collect6.mp3',
+        'collect7.mp3',
+        'collect8.mp3',
+        'collect9.mp3',
+        'collect10.mp3',
+        'collect11.mp3',
+        'collect12.mp3',
+        'collect13.mp3',
+        'collect14.mp3',
+        'collect15.mp3',
+        'collect16.mp3',
+        'collect17.mp3',
+        'collect18.mp3',
+        'collect19.mp3',
+
+      ];
+      const collectSounds = collectSoundFiles.map((file) => makeAudio(`${collectSoundFolder}${file}`, baseCollectVolume));
+      const deathSound = makeAudio('assets/sfx/death.mp3', baseDeathVolume);
+      const backgroundMusic = makeAudio('assets/sfx/music.mp3', baseMusicVolume);
+      backgroundMusic.loop = true;
+      const birdSprites = {
+        bird1: { base: 'assets/custom-bird.png', talk: 'assets/custom-bird-talking.png' },
+        bird2: { base: 'assets/custom-bird2.png', talk: 'assets/custom-bird2-talking.png' },
+        bird3: { base: 'assets/custom-bird3.png', talk: 'assets/custom-bird3-talking.png' },
+        bird4: { base: 'assets/custom-bird4.png', talk: 'assets/custom-bird4-talking.png' },
+        bird5: { base: 'assets/custom-bird5.png', talk: 'assets/custom-bird5-talking.png' },
+        bird6: { base: 'assets/custom-bird6.png', talk: 'assets/custom-bird6-talking.png' },
+        bird7: { base: 'assets/custom-bird7.png', talk: 'assets/custom-bird7-talking.png' },
+        bird8: { base: 'assets/custom-bird8.png', talk: 'assets/custom-bird8-talking.png' },
+        bird9: { base: 'assets/custom-bird9.png', talk: 'assets/custom-bird9-talking.png' },
+        bird10: { base: 'assets/custom-bird10.png', talk: 'assets/custom-bird10-talking.png' },
+        bird11: { base: 'assets/custom-bird11.png', talk: 'assets/custom-bird11-talking.png' },
+        bird12: { base: 'assets/custom-bird12.png', talk: 'assets/custom-bird12-talking.png' },
+        bird13: { base: 'assets/custom-bird13.png', talk: 'assets/custom-bird13-talking.png' },
+        bird14: { base: 'assets/custom-bird14.png', talk: 'assets/custom-bird14-talking.png' },
+        bird15: { base: 'assets/custom-bird15.png', talk: 'assets/custom-bird15-talking.png' },
+        bird16: { base: 'assets/custom-bird16.png', talk: 'assets/custom-bird16-talking.png' },
+        bird17: { base: 'assets/custom-bird17.png', talk: 'assets/custom-bird17-talking.png' },
+        bird18: { base: 'assets/custom-bird18.png', talk: 'assets/custom-bird18-talking.png' },
+        bird19: { base: 'assets/custom-bird19.png', talk: 'assets/custom-bird19-talking.png' },
+        bird20: { base: 'assets/custom-bird20.png', talk: 'assets/custom-bird20-talking.png' },
+        bird21: { base: 'assets/custom-bird21.png', talk: 'assets/custom-bird21-talking.png' },
+        bird22: { base: 'assets/custom-bird22.png', talk: 'assets/custom-bird22-talking.png' },
+        bird23: { base: 'assets/custom-bird23.png', talk: 'assets/custom-bird23-talking.png' },
+        bird24: { base: 'assets/custom-bird24.png', talk: 'assets/custom-bird24-talking.png' },
+      };
+      const birdImages = { base: new Image(), talk: new Image() };
+      const birdReady = { base: false, talk: false };
+      let activeBirdFrame = 'base';
+      let currentBirdSprite = birdSprites.bird1;
+      let activeDeathSound = null;
+      let activeCollectSound = null;
+      let talkSwapTimer = null;
+
+      let currentBackground = 'animated';
+      let currentBird = 'bird1';
+      let menuOpen = true;
+      let musicEnabled = false;
+      let gameVolume = 1;
+      let musicVolume = baseMusicVolume;
+
+      const STORAGE_KEY = 'hox-dislikes-best-by-difficulty-v1';
+      const stars = [];
+      const auroraBands = [];
+      const parallaxRidges = [];
+      const skyThemes = [
+        {
+          name: 'glacier',
+          skyStops: [
+            [40, 182, 255, 1],
+            [11, 122, 199, 1],
+            [12, 74, 139, 1],
+            [11, 35, 65, 1],
+          ],
+          glow: [168, 231, 255, 0.26],
+          auroraA: [
+            [125, 211, 252, 0.32],
+            [34, 211, 238, 0.24],
+          ],
+          auroraB: [
+            [52, 211, 153, 0.24],
+            [59, 130, 246, 0.2],
+          ],
+          starTint: { primary: [255, 255, 255], secondary: [156, 199, 255] },
+          haze: [59, 130, 246, 0.12],
+          ridges: {
+            near: [
+              [12, 74, 110, 0.82],
+              [8, 47, 73, 0.94],
+            ],
+            far: [
+              [86, 154, 255, 0.18],
+              [12, 74, 110, 0.34],
+            ],
+          },
+          ridgeStrokes: {
+            near: [56, 189, 248, 0.18],
+            far: [255, 255, 255, 0.12],
+          },
+        },
+        {
+          name: 'ember',
+          skyStops: [
+            [253, 203, 82, 1],
+            [248, 113, 113, 1],
+            [124, 58, 237, 1],
+            [53, 27, 80, 1],
+          ],
+          glow: [255, 166, 158, 0.24],
+          auroraA: [
+            [251, 113, 133, 0.24],
+            [94, 234, 212, 0.22],
+          ],
+          auroraB: [
+            [249, 168, 212, 0.22],
+            [251, 191, 36, 0.22],
+          ],
+          starTint: { primary: [255, 235, 196], secondary: [255, 204, 229] },
+          haze: [255, 149, 128, 0.16],
+          ridges: {
+            near: [
+              [120, 53, 15, 0.72],
+              [67, 20, 7, 0.9],
+            ],
+            far: [
+              [164, 90, 189, 0.24],
+              [120, 32, 95, 0.38],
+            ],
+          },
+          ridgeStrokes: {
+            near: [255, 255, 255, 0.08],
+            far: [248, 180, 113, 0.18],
+          },
+        },
+        {
+          name: 'aurora tide',
+          skyStops: [
+            [54, 224, 211, 1],
+            [59, 130, 246, 1],
+            [76, 29, 149, 1],
+            [17, 24, 39, 1],
+          ],
+          glow: [156, 207, 255, 0.22],
+          auroraA: [
+            [52, 211, 153, 0.3],
+            [56, 189, 248, 0.24],
+          ],
+          auroraB: [
+            [129, 140, 248, 0.26],
+            [34, 197, 94, 0.2],
+          ],
+          starTint: { primary: [212, 255, 255], secondary: [134, 239, 172] },
+          haze: [34, 197, 94, 0.14],
+          ridges: {
+            near: [
+              [27, 94, 91, 0.8],
+              [17, 76, 108, 0.92],
+            ],
+            far: [
+              [77, 124, 15, 0.24],
+              [8, 47, 73, 0.38],
+            ],
+          },
+          ridgeStrokes: {
+            near: [52, 211, 153, 0.18],
+            far: [125, 211, 252, 0.16],
+          },
+        },
+        {
+          name: 'midnight bloom',
+          skyStops: [
+            [32, 21, 71, 1],
+            [79, 70, 229, 1],
+            [147, 51, 234, 1],
+            [22, 11, 52, 1],
+          ],
+          glow: [171, 126, 255, 0.24],
+          auroraA: [
+            [167, 139, 250, 0.26],
+            [94, 234, 212, 0.22],
+          ],
+          auroraB: [
+            [59, 130, 246, 0.22],
+            [56, 189, 248, 0.2],
+          ],
+          starTint: { primary: [230, 224, 255], secondary: [165, 180, 252] },
+          haze: [99, 102, 241, 0.13],
+          ridges: {
+            near: [
+              [51, 40, 105, 0.82],
+              [30, 20, 71, 0.94],
+            ],
+            far: [
+              [132, 94, 247, 0.25],
+              [49, 46, 129, 0.35],
+            ],
+          },
+          ridgeStrokes: {
+            near: [165, 180, 252, 0.16],
+            far: [196, 181, 253, 0.16],
+          },
+        },
+        {
+          name: 'tropic dusk',
+          skyStops: [
+            [255, 166, 43, 1],
+            [255, 120, 101, 1],
+            [56, 189, 248, 1],
+            [12, 44, 67, 1],
+          ],
+          glow: [255, 185, 124, 0.25],
+          auroraA: [
+            [255, 180, 171, 0.24],
+            [96, 165, 250, 0.22],
+          ],
+          auroraB: [
+            [16, 185, 129, 0.26],
+            [52, 211, 153, 0.22],
+          ],
+          starTint: { primary: [255, 248, 220], secondary: [255, 214, 170] },
+          haze: [255, 126, 95, 0.14],
+          ridges: {
+            near: [
+              [145, 65, 35, 0.82],
+              [88, 31, 17, 0.94],
+            ],
+            far: [
+              [14, 116, 144, 0.22],
+              [13, 61, 89, 0.36],
+            ],
+          },
+          ridgeStrokes: {
+            near: [255, 199, 144, 0.18],
+            far: [56, 189, 248, 0.16],
+          },
+        },
+        {
+          name: 'cyber wave',
+          skyStops: [
+            [0, 255, 209, 1],
+            [59, 130, 246, 1],
+            [168, 85, 247, 1],
+            [22, 27, 51, 1],
+          ],
+          glow: [126, 255, 217, 0.24],
+          auroraA: [
+            [59, 130, 246, 0.3],
+            [168, 85, 247, 0.24],
+          ],
+          auroraB: [
+            [45, 212, 191, 0.28],
+            [56, 189, 248, 0.24],
+          ],
+          starTint: { primary: [199, 255, 239], secondary: [191, 219, 254] },
+          haze: [56, 189, 248, 0.14],
+          ridges: {
+            near: [
+              [17, 94, 89, 0.82],
+              [19, 50, 83, 0.94],
+            ],
+            far: [
+              [87, 90, 255, 0.2],
+              [52, 69, 107, 0.34],
+            ],
+          },
+          ridgeStrokes: {
+            near: [34, 211, 238, 0.2],
+            far: [129, 140, 248, 0.18],
+          },
+        },
+      ];
+      const themeHoldMs = 11000;
+      const themeFadeMs = 9000;
+      let themeClock = 0;
+      let themeBlend = 0;
+      let themeIndex = Math.floor(Math.random() * skyThemes.length);
+      let nextThemeIndex = pickRandomThemeIndex(themeIndex);
+      let skyPulse = 0;
+      let currentThemeState = null;
+      const minStars = 45;
+      const maxStarsCap = 90;
+      const baseStarDensity = 0.000085;
+      const dprFactor = Math.max(1, Math.pow(window.devicePixelRatio || 1, 0.7));
+      const maxStars = Math.max(
+        minStars,
+        Math.min(maxStarsCap, Math.floor((canvas.width * canvas.height * baseStarDensity) / dprFactor))
+      );
+      const startGraceMs = 600;
+      const birdScale = 0.085; // tuned for a 591x727 sprite (smaller to keep difficulty fair)
+      const maxBirdSize = 88; // cap to keep it playable with tight gaps
+      const collisionShrink = 0.18; // reduces hitbox vs sprite size
+      const collectibleSettings = { chance: 0.35, size: 48, padding: 10 };
+      const groundStripe = { step: 18, width: 12, height: 6 };
+      const baseCollectScore = 1;
+      const pickupMarkerStyle = { duration: 900, rise: 34, drift: 12 };
+      const physicsTuning = {
+        ascentGravityFactor: 0.82,
+        maxFallSpeed: 11.5,
+        maxRiseSpeed: -9.4,
+      };
+      const difficultyRamp = {
+        maxGapTighten: 26,
+        maxSpeedBoost: 1,
+        maxSpawnReduction: 360,
+        maxGravityBoost: 0.045,
+        scoreForMax: 45,
+        minSpawnInterval: 950,
+      };
+      const pipeTopSmoothing = { maxDelta: 120, ease: 0.6 };
+
+      let currentDifficulty = difficultySelect.value;
+      let bestScores = { easy: 0, normal: 0, hard: 0 };
+      const NAME_STORAGE_KEY = 'hox-dislikes-player-name';
+      const PERSONAL_STATS_KEY = 'hox-dislikes-personal-stats-v1';
+      const LEADERBOARD_COLLECTION = 'hoxDislikesLeaderboard';
+      const STATS_COLLECTION = 'hoxDislikesStats';
+      const GLOBAL_STATS_DOC_ID = 'global';
+      let firestoreDb = null;
+      let firebaseInitError = '';
+      let firebaseReady = false;
+      let submittingScore = false;
+      let firebaseReadyPromise = null;
+      let playerNameLocked = false;
+      let bestBeforeRun = { ...bestScores };
+      const playerLeaderboardBest = { easy: 0, normal: 0, hard: 0 };
+      const playerHasLeaderboardScore = { easy: false, normal: false, hard: false };
+      let statsPanelOpen = false;
+      let personalTotals = { games: 0, collected: 0, playTimeMs: 0 };
+      let deathShakeInFlight = false;
+
+      const clamp01 = (value) => Math.max(0, Math.min(1, value));
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      function pickRandomThemeIndex(excludeIndex = -1) {
+        if (skyThemes.length <= 1) {
+          return 0;
+        }
+        let idx = excludeIndex;
+        while (idx === excludeIndex) {
+          idx = Math.floor(Math.random() * skyThemes.length);
+        }
+        return idx;
+      }
+
+      function mixRgba(colorA, colorB, t) {
+        const alphaA = colorA[3] ?? 1;
+        const alphaB = colorB[3] ?? 1;
+        return [
+          Math.round(lerp(colorA[0], colorB[0], t)),
+          Math.round(lerp(colorA[1], colorB[1], t)),
+          Math.round(lerp(colorA[2], colorB[2], t)),
+          lerp(alphaA, alphaB, t),
+        ];
+      }
+
+      function mixRgb(colorA, colorB, t) {
+        return [
+          Math.round(lerp(colorA[0], colorB[0], t)),
+          Math.round(lerp(colorA[1], colorB[1], t)),
+          Math.round(lerp(colorA[2], colorB[2], t)),
+        ];
+      }
+
+      function rgbaToString(rgba) {
+        const [r, g, b, a = 1] = rgba;
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+      }
+
+      function rgbToString(rgb) {
+        const [r, g, b] = rgb;
+        return `${r}, ${g}, ${b}`;
+      }
+
+      function blendStops(stopsA, stopsB, t) {
+        const maxLen = Math.max(stopsA.length, stopsB.length);
+        const blended = [];
+        for (let i = 0; i < maxLen; i += 1) {
+          const colorA = stopsA[i % stopsA.length];
+          const colorB = stopsB[i % stopsB.length];
+          blended.push(mixRgba(colorA, colorB, t));
+        }
+        return blended;
+      }
+
+      function easeInOutSine(t) {
+        return 0.5 - 0.5 * Math.cos(Math.PI * clamp01(t));
+      }
+
+      function getBlendedTheme() {
+        const from = skyThemes[themeIndex];
+        const to = skyThemes[nextThemeIndex];
+        return {
+          skyStops: blendStops(from.skyStops, to.skyStops, themeBlend),
+          glow: mixRgba(from.glow, to.glow, themeBlend),
+          auroraA: blendStops(from.auroraA, to.auroraA, themeBlend),
+          auroraB: blendStops(from.auroraB, to.auroraB, themeBlend),
+          star: {
+            primary: mixRgb(from.starTint.primary, to.starTint.primary, themeBlend),
+            secondary: mixRgb(from.starTint.secondary, to.starTint.secondary, themeBlend),
+          },
+          haze: mixRgba(from.haze, to.haze, themeBlend),
+          ridges: {
+            near: blendStops(from.ridges.near, to.ridges.near, themeBlend),
+            far: blendStops(from.ridges.far, to.ridges.far, themeBlend),
+          },
+          ridgeStrokes: {
+            near: mixRgba(from.ridgeStrokes.near, to.ridgeStrokes.near, themeBlend),
+            far: mixRgba(from.ridgeStrokes.far, to.ridgeStrokes.far, themeBlend),
+          },
+        };
+      }
+
+      function retintStars(theme) {
+        if (!theme) {
+          return;
+        }
+        stars.forEach((star, index) => {
+          const rgb = index % 4 === 0 ? theme.star.secondary : theme.star.primary;
+          star.tint = rgbToString(rgb);
+        });
+      }
+
+      function advanceSkyTheme(deltaMs) {
+        themeClock += deltaMs;
+        skyPulse += deltaMs;
+        const cycleLength = themeHoldMs + themeFadeMs;
+        if (themeClock >= cycleLength) {
+          themeClock = 0;
+          themeIndex = nextThemeIndex;
+          nextThemeIndex = pickRandomThemeIndex(themeIndex);
+        }
+        const fadeStart = themeHoldMs * 0.35;
+        const rawBlend = (themeClock - fadeStart) / themeFadeMs;
+        themeBlend = easeInOutSine(clamp01(rawBlend));
+        currentThemeState = getBlendedTheme();
+        retintStars(currentThemeState);
+      }
+
+      function normalizeName(name) {
+        return (name || '').trim().toLowerCase().slice(0, 24);
+      }
+
+      function runDeathShake() {
+        if (deathShakeInFlight) {
+          return;
+        }
+        deathShakeInFlight = true;
+        const tick = () => {
+          if (state.shake <= 0) {
+            deathShakeInFlight = false;
+            return;
+          }
+          draw();
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+
+      function makeLeaderboardDocId(name) {
+        return encodeURIComponent(normalizeName(name));
+      }
+
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        bestScores = { ...bestScores, ...parsed };
+      } catch (err) {
+        // ignore parse errors and keep defaults
+      }
+      bestBeforeRun = { ...bestScores };
+
+      try {
+        const parsedTotals = JSON.parse(localStorage.getItem(PERSONAL_STATS_KEY) || '{}');
+        personalTotals = {
+          games: Math.max(0, Number(parsedTotals.games) || 0),
+          collected: Math.max(0, Number(parsedTotals.collected) || 0),
+          playTimeMs: Math.max(0, Number(parsedTotals.playTimeMs) || 0),
+        };
+      } catch (err) {
+        personalTotals = { games: 0, collected: 0, playTimeMs: 0 };
+      }
+
+      const baseSettings = {
+        flap: -6.6,
+        pipeWidth: 80,
+        groundHeight: 74,
+      };
+
+      const difficultyPresets = {
+        easy: { gravity: 0.32, pipeGap: 190, pipeSpeed: 2.1, spawnInterval: 1700 },
+        normal: { gravity: 0.35, pipeGap: 165, pipeSpeed: 2.55, spawnInterval: 1500 },
+        hard: { gravity: 0.38, pipeGap: 145, pipeSpeed: 3.05, spawnInterval: 1300 },
+      };
+      const difficultyLabels = { easy: 'Incel', normal: 'Védenc', hard: 'Evelin' };
+
+      let settings = { ...baseSettings, ...difficultyPresets.normal };
+      let runBaseSettings = { ...settings };
+      let minPipeGap = Math.max(120, difficultyPresets.normal.pipeGap - 30);
+
+      const defaultBirdWidth = 70;
+      const defaultBirdHeight = 86;
+      const bird = {
+        x: 130,
+        y: canvas.height / 2,
+        width: defaultBirdWidth,
+        height: defaultBirdHeight,
+        velocity: 0,
+      };
+
+      const pipes = [];
+      const collectibles = [];
+      const pickupMarkers = [];
+      let score = 0;
+      let groundOffset = 0;
+      let collectibleMisses = 0;
+      let lastPipeTop = null;
+
+      const state = {
+        running: false,
+        gameOver: false,
+        paused: false,
+        pipeTimer: 0,
+      lastTime: 0,
+      shake: 0,
+      startTime: 0,
+    };
+
+    const runGuard = {
+      id: '',
+      startedAt: 0,
+      endedAt: 0,
+      lastScore: 0,
+      bestScore: 0,
+      difficulty: currentDifficulty,
+      flagged: false,
+      reasons: [],
+      allowedScore: 0,
+    };
+
+    const dislikeImage = new Image();
+      const dislikeImageSrc = 'assets/dislike.png'; // Replace with your dislike icon
+      let dislikeImageReady = false;
+      dislikeImage.onload = () => {
+        dislikeImageReady = true;
+        dislikeIconEl.src = dislikeImageSrc;
+        dislikeIconEl.alt = 'Dislike ikon';
+      };
+      dislikeImage.onerror = () => {
+        dislikeImageReady = false;
+        dislikeIconEl.removeAttribute('src');
+      };
+      dislikeImage.src = dislikeImageSrc;
+
+      Object.values(backgroundImages).forEach((entry) => {
+        entry.image.onload = () => {
+          entry.ready = true;
+        };
+        entry.image.onerror = () => {
+          entry.ready = false;
+        };
+        entry.image.src = entry.src;
+      });
+
+      function setSubmissionStatus(message, isError = false) {
+        if (!submissionStatusEl) {
+          return;
+        }
+        submissionStatusEl.textContent = message || '';
+        submissionStatusEl.classList.toggle('error', Boolean(isError));
+      }
+
+      function setSubmitButtonLabel(text) {
+        if (!submitScoreBtn) {
+          return;
+        }
+        submitScoreBtn.textContent = text;
+      }
+
+      function setLeaderboardStatus(message, isError = false) {
+        if (!leaderboardStatusEl) {
+          return;
+        }
+        leaderboardStatusEl.textContent = message || '';
+        leaderboardStatusEl.classList.toggle('error', Boolean(isError));
+      }
+
+      function setStatsStatus(message, isError = false) {
+        if (!statsStatusEl) {
+          return;
+        }
+        statsStatusEl.textContent = message || '';
+        statsStatusEl.classList.toggle('error', Boolean(isError));
+      }
+
+      function formatNumber(value) {
+        const num = Number(value) || 0;
+        return num.toLocaleString('hu-HU');
+      }
+
+      function formatDuration(ms = 0) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        if (minutes >= 60) {
+          const hours = Math.floor(minutes / 60);
+          const mins = minutes % 60;
+          return `${hours} h ${mins} m`;
+        }
+        return `${minutes} m ${seconds.toString().padStart(2, '0')} s`;
+      }
+
+      function buildOptionLabelMap(container, dataKey) {
+        const map = {};
+        if (!container) {
+          return map;
+        }
+        container.querySelectorAll('.option-tile').forEach((tile) => {
+          const key = tile.dataset[dataKey];
+          const label = tile.querySelector('.option-label');
+          if (key && label) {
+            map[key] = label.textContent.trim();
+          }
+        });
+        return map;
+      }
+
+      function buildOptionOrder(container, dataKey) {
+        const order = [];
+        if (!container) {
+          return order;
+        }
+        container.querySelectorAll('.option-tile').forEach((tile) => {
+          const key = tile.dataset[dataKey];
+          if (key) {
+            order.push(key);
+          }
+        });
+        return order;
+      }
+
+      function getTopUsage(counts) {
+        if (!counts || typeof counts !== 'object') {
+          return null;
+        }
+        let topKey = '';
+        let topCount = -1;
+        Object.entries(counts).forEach(([key, value]) => {
+          const num = Number(value) || 0;
+          if (num > topCount) {
+            topKey = key;
+            topCount = num;
+          }
+        });
+        return topCount >= 0 ? { key: topKey, count: topCount } : null;
+      }
+
+      function getTopUsageList(counts, order = []) {
+        if (!counts || typeof counts !== 'object') {
+          return [];
+        }
+        let max = -1;
+        const orderIndex =
+          Array.isArray(order) && order.length
+            ? order.reduce((acc, key, index) => {
+                acc[key] = index;
+                return acc;
+              }, {})
+            : {};
+        const entries = Object.entries(counts).map(([key, value]) => [key, Number(value) || 0]);
+        entries.forEach(([, val]) => {
+          if (val > max) {
+            max = val;
+          }
+        });
+        if (max < 0) {
+          return [];
+        }
+        const filtered = entries.filter(([, val]) => val === max).map(([key]) => ({ key, count: max }));
+        if (order && order.length) {
+          filtered.sort(
+            (a, b) => (orderIndex[a.key] ?? Number.MAX_SAFE_INTEGER) - (orderIndex[b.key] ?? Number.MAX_SAFE_INTEGER)
+          );
+        }
+        return filtered;
+      }
+
+      function extractUsageMap(stats, baseKey) {
+        if (stats && typeof stats[baseKey] === 'object') {
+          return stats[baseKey];
+        }
+        const map = {};
+        Object.entries(stats || {}).forEach(([key, value]) => {
+          const prefix = `${baseKey}.`;
+          if (key.startsWith(prefix)) {
+            const childKey = key.slice(prefix.length);
+            map[childKey] = value;
+          }
+        });
+        return Object.keys(map).length ? map : null;
+      }
+
+      function renderStatsList(listEl, items) {
+        if (!listEl) {
+          return;
+        }
+        listEl.innerHTML = '';
+        if (!items.length) {
+          const empty = document.createElement('li');
+          empty.className = 'stats-muted';
+          empty.textContent = 'Nincs adat';
+          listEl.appendChild(empty);
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        let needsShrink = false;
+        items.forEach((item) => {
+          const li = document.createElement('li');
+          const label = document.createElement('span');
+          label.className = 'stats-label';
+          label.textContent = item.label;
+          const value = document.createElement('span');
+          value.className = 'stats-value';
+          value.textContent = item.value;
+          if (item.className) {
+            li.classList.add(item.className);
+          }
+          if (item.shrinkToFit) {
+            value.classList.add('stats-value-shrink');
+            needsShrink = true;
+          }
+          li.appendChild(label);
+          li.appendChild(value);
+          fragment.appendChild(li);
+        });
+        listEl.appendChild(fragment);
+        if (needsShrink) {
+          shrinkStatsValues(listEl);
+        }
+      }
+
+      function shrinkStatsValues(listEl, minScale = 0.72) {
+        const shrinkEls = listEl.querySelectorAll('.stats-value-shrink');
+        shrinkEls.forEach((el) => {
+          const initialSize = parseFloat(getComputedStyle(el).fontSize) || 16;
+          const minSize = initialSize * minScale;
+          let size = initialSize;
+          let guard = 0;
+          while (el.scrollWidth > el.clientWidth && size > minSize && guard < 10) {
+            size -= 1;
+            el.style.fontSize = `${size}px`;
+            guard += 1;
+          }
+        });
+      }
+
+      function persistPersonalTotals() {
+        localStorage.setItem(
+          PERSONAL_STATS_KEY,
+          JSON.stringify({
+            games: personalTotals.games,
+            collected: personalTotals.collected,
+            playTimeMs: personalTotals.playTimeMs,
+          })
+        );
+      }
+
+      function recordPersonalTotals(runScore = 0, runDurationMs = 0) {
+        personalTotals.games = Math.max(0, personalTotals.games + 1);
+        personalTotals.collected = Math.max(0, personalTotals.collected + Math.max(0, runScore));
+        personalTotals.playTimeMs = Math.max(0, personalTotals.playTimeMs + Math.max(0, runDurationMs));
+        persistPersonalTotals();
+      }
+
+      function renderPersonalStats() {
+        const name = getKnownPlayerName();
+        const items = [
+          { label: 'Név', value: name || 'Nincs megadva' },
+          { label: 'Lejátszott játékok', value: formatNumber(personalTotals.games || 0) },
+          { label: 'Gyűjtött diszlájkok', value: formatNumber(personalTotals.collected || 0) },
+          { label: 'Játszott idő', value: formatDuration(personalTotals.playTimeMs || 0) },
+          { label: 'Incel rekord', value: formatNumber(bestScores.easy || 0), className: 'stat-diff-easy' },
+          { label: 'Védenc rekord', value: formatNumber(bestScores.normal || 0), className: 'stat-diff-normal' },
+          { label: 'Evelin rekord', value: formatNumber(bestScores.hard || 0), className: 'stat-diff-hard' },
+        ];
+        renderStatsList(personalStatsList, items);
+      }
+      function renderCommunityStats(data) {
+        const stats = data || {};
+        const bgUsage = extractUsageMap(stats, 'bgUsage');
+        const birdUsage = extractUsageMap(stats, 'birdUsage');
+        const topBgList = getTopUsageList(bgUsage, backgroundOrder);
+        const topBirdList = getTopUsageList(birdUsage, birdOrder);
+        const formatTopList = (list, labels) => {
+          if (!list.length || list[0].count <= 0) {
+            return 'Nincs adat';
+          }
+          const names = list.map(({ key }) => labels[key] || key);
+          const nameText = names.join(' / ');
+          return `${nameText} (${formatNumber(list[0].count)})`;
+        };
+        const items = [
+          { label: 'Lejátszott játékok', value: formatNumber(stats.totalRuns || 0) },
+          { label: 'Gyűjtött diszlájkok', value: formatNumber(stats.totalDislikes || 0) },
+          { label: 'Játszott idő', value: formatDuration(stats.totalPlayTimeMs || 0) },
+          {
+            label: 'Leggyakoribb háttér',
+            value: formatTopList(topBgList, backgroundLabels),
+            shrinkToFit: true,
+          },
+          {
+            label: 'Leggyakoribb fej',
+            value: formatTopList(topBirdList, birdLabels),
+            shrinkToFit: true,
+          },
+        ];
+        renderStatsList(communityStatsList, items);
+      }
+
+      function setNameLocked(locked) {
+        playerNameLocked = locked;
+        playerNameInput.readOnly = locked;
+        playerNameInput.disabled = locked;
+        playerNameInput.setAttribute('aria-readonly', locked ? 'true' : 'false');
+        playerNameInput.title = locked ? 'A név zárolva a korábbi választás alapján' : '';
+      }
+
+      function resetPlayerLeaderboardBest() {
+        playerLeaderboardBest.easy = 0;
+        playerLeaderboardBest.normal = 0;
+        playerLeaderboardBest.hard = 0;
+        playerHasLeaderboardScore.easy = false;
+        playerHasLeaderboardScore.normal = false;
+        playerHasLeaderboardScore.hard = false;
+      }
+
+      function isTypingTarget(element) {
+        if (!element) {
+          return false;
+        }
+        if (element.isContentEditable) {
+          return true;
+        }
+        const tagName = element.tagName;
+        return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || tagName === 'OPTION' || tagName === 'BUTTON';
+      }
+
+      function hasFirebaseConfig(config) {
+        if (!config || typeof config !== 'object') {
+          return false;
+        }
+        const required = ['apiKey', 'authDomain', 'projectId'];
+        return required.every((key) => typeof config[key] === 'string' && config[key] && !config[key].includes('YOUR_'));
+      }
+
+      function getFirebaseConfig() {
+        return window.HOX_FIREBASE_CONFIG || window.firebaseConfig || null;
+      }
+
+      function loadScriptOnce(src) {
+        return new Promise((resolve, reject) => {
+          const existing = document.querySelector(`script[src="${src}"]`);
+          if (existing) {
+            if (existing.dataset.loaded === 'yes' || existing.readyState === 'complete' || existing.readyState === 'loaded') {
+              resolve();
+              return;
+            }
+            existing.addEventListener('load', () => resolve(), { once: true });
+            existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = src;
+          script.defer = true;
+          script.onload = () => {
+            script.dataset.loaded = 'yes';
+            resolve();
+          };
+          script.onerror = () => reject(new Error(`Failed to load ${src}`));
+          document.head.appendChild(script);
+        });
+      }
+
+      async function loadFirebaseSdk() {
+        await loadScriptOnce('https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js');
+        await loadScriptOnce('https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js');
+        await loadScriptOnce('https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js');
+      }
+
+      async function fetchPlayerBestFromLeaderboard(name, difficulty, dbInstance) {
+        if (!name) {
+          return { best: 0, found: false };
+        }
+        const db = dbInstance || (await ensureFirebase());
+        const entries = getLeaderboardEntriesCollection(db, difficulty);
+        const docId = makeLeaderboardDocId(name);
+        let best = 0;
+        let found = false;
+        try {
+          const docSnap = await entries.doc(docId).get();
+          if (docSnap.exists) {
+            const data = docSnap.data() || {};
+            best = data.score ?? 0;
+            found = true;
+            return { best, found };
+          }
+        } catch (err) {
+          // fall back to queries
+        }
+        const normalized = normalizeName(name);
+        try {
+          const normalizedSnap = await entries.where('normalizedName', '==', normalized).limit(1).get();
+          normalizedSnap.forEach((doc) => {
+            const data = doc.data() || {};
+            const scoreValue = data.score ?? 0;
+            if (scoreValue > best) {
+              best = scoreValue;
+            }
+            found = true;
+          });
+        } catch (err) {
+          // ignore and try legacy name
+        }
+        const snapshot = await entries.where('name', '==', name).get();
+        snapshot.forEach((doc) => {
+          const data = doc.data() || {};
+          const scoreValue = data.score ?? 0;
+          if (scoreValue > best) {
+            best = scoreValue;
+          }
+          found = true;
+        });
+        return { best, found };
+      }
+
+      async function initFirebase() {
+        if (firebaseReady && firestoreDb) {
+          return firestoreDb;
+        }
+        if (firebaseReadyPromise) {
+          return firebaseReadyPromise;
+        }
+        const config = getFirebaseConfig();
+        if (!hasFirebaseConfig(config)) {
+          firebaseReady = false;
+          firestoreDb = null;
+          firebaseReadyPromise = null;
+          firebaseInitError = 'Állítsd be a window.HOX_FIREBASE_CONFIG objektumot a Firebase kulcsokkal a ranglistához.';
+          setLeaderboardStatus(firebaseInitError, true);
+          setSubmissionStatus(firebaseInitError, true);
+          return Promise.reject(new Error(firebaseInitError));
+        }
+        firebaseInitError = '';
+        firebaseReadyPromise = (async () => {
+          setLeaderboardStatus('Csatlakozás a Firebase-hez...');
+          try {
+            await loadFirebaseSdk();
+            const app = firebase.apps && firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
+            firestoreDb = firebase.firestore(app);
+            const auth = firebase.auth(app);
+            if (!auth.currentUser) {
+              setLeaderboardStatus('Bejelentkezés a Firebase-be...');
+              try {
+                await auth.signInAnonymously();
+              } catch (authErr) {
+                // If Auth isn't configured (e.g., anonymous disabled), keep Firestore usable and warn
+                if (authErr && authErr.code === 'auth/configuration-not-found') {
+                  setLeaderboardStatus('A Firebase Auth nincs engedélyezve; anonim bejelentkezés kihagyva.', true);
+                  setSubmissionStatus('Anonim bejelentkezés nem elérhető; engedélyezd a Firebase Auth-ot a biztonságos feltöltéshez.', true);
+                } else {
+                  throw authErr;
+                }
+              }
+            }
+            firebaseReady = true;
+            setLeaderboardStatus('Csatlakozva. Frissíts a pontok betöltéséhez.');
+            return firestoreDb;
+          } catch (err) {
+            firebaseInitError = err.message || 'A Firebase inicializálása nem sikerült';
+            setLeaderboardStatus(firebaseInitError, true);
+            setSubmissionStatus(firebaseInitError, true);
+            firebaseReadyPromise = null;
+            firebaseReady = false;
+            firestoreDb = null;
+            throw err;
+          }
+        })();
+        return firebaseReadyPromise;
+      }
+
+      async function ensureFirebase() {
+        if (firebaseReady && firestoreDb) {
+          return firestoreDb;
+        }
+        return initFirebase();
+      }
+
+      function hydratePlayerName() {
+        const stored = (localStorage.getItem(NAME_STORAGE_KEY) || '').trim();
+        if (stored) {
+          playerNameInput.value = stored.slice(0, 24);
+          setNameLocked(true);
+        } else {
+          setNameLocked(false);
+        }
+      }
+
+      function getKnownPlayerName() {
+        const stored = (localStorage.getItem(NAME_STORAGE_KEY) || '').trim();
+        if (stored) {
+          return stored.slice(0, 24);
+        }
+        const typed = (playerNameInput.value || '').trim();
+        return typed ? typed.slice(0, 24) : '';
+      }
+
+      function getLeaderboardEntriesCollection(db, difficulty) {
+        return db.collection(LEADERBOARD_COLLECTION).doc(difficulty).collection('entries');
+      }
+
+      async function findExistingEntryRef(db, name, difficulty) {
+        const entries = getLeaderboardEntriesCollection(db, difficulty);
+        const docId = makeLeaderboardDocId(name);
+        const directRef = entries.doc(docId);
+        try {
+          const directSnap = await directRef.get();
+          if (directSnap.exists) {
+            return directRef;
+          }
+        } catch (err) {
+          // ignore and fallback to queries
+        }
+        const normalized = normalizeName(name);
+        try {
+          const normalizedSnap = await entries.where('normalizedName', '==', normalized).limit(1).get();
+          if (!normalizedSnap.empty) {
+            return normalizedSnap.docs[0].ref;
+          }
+        } catch (err) {
+          // ignore and try legacy name query
+        }
+        try {
+          const nameSnap = await entries.where('name', '==', name).limit(1).get();
+          if (!nameSnap.empty) {
+            return nameSnap.docs[0].ref;
+          }
+        } catch (err) {
+          // final fallback to deterministic doc id
+        }
+        return directRef;
+      }
+
+      function getGlobalStatsDoc(db) {
+        return db.collection(STATS_COLLECTION).doc(GLOBAL_STATS_DOC_ID);
+      }
+
+      async function recordGlobalStats({ scoreValue = 0, difficulty, deathReason, durationMs = 0, background, bird }) {
+        if (!hasFirebaseConfig(getFirebaseConfig())) {
+          return;
+        }
+        try {
+          const db = await ensureFirebase();
+          const increment = firebase.firestore.FieldValue.increment;
+          const safeScore = Math.max(0, Math.floor(Number(scoreValue) || 0));
+          const safeDuration = Math.max(0, Math.round(Number(durationMs) || 0));
+          const update = {
+            totalRuns: increment(1),
+            totalDislikes: increment(safeScore),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          };
+          if (safeDuration) {
+            update.totalPlayTimeMs = increment(safeDuration);
+          }
+          if (difficulty) {
+            update[`runsByDifficulty.${difficulty}`] = increment(1);
+            update[`dislikesByDifficulty.${difficulty}`] = increment(safeScore);
+            if (safeDuration) {
+              update[`playTimeByDifficulty.${difficulty}`] = increment(safeDuration);
+            }
+          }
+          if (deathReason) {
+            update[`deathsByReason.${deathReason}`] = increment(1);
+          }
+          if (background) {
+            update[`bgUsage.${background}`] = increment(1);
+          }
+          if (bird) {
+            update[`birdUsage.${bird}`] = increment(1);
+          }
+          await getGlobalStatsDoc(db).set(update, { merge: true });
+        } catch (err) {
+          console.warn('[hox-stats] run stats update failed', err);
+        }
+      }
+
+      async function recordLeaderboardUploadStats(scoreValue = 0, difficulty) {
+        if (!hasFirebaseConfig(getFirebaseConfig())) {
+          return;
+        }
+        try {
+          const db = await ensureFirebase();
+          const increment = firebase.firestore.FieldValue.increment;
+          const safeScore = Math.max(0, Math.floor(Number(scoreValue) || 0));
+          const update = {
+            leaderboardUploads: increment(1),
+            uploadedDislikes: increment(safeScore),
+            lastUploadAt: firebase.firestore.FieldValue.serverTimestamp(),
+          };
+          if (difficulty) {
+            update[`uploadsByDifficulty.${difficulty}`] = increment(1);
+            update[`uploadedDislikesByDifficulty.${difficulty}`] = increment(safeScore);
+          }
+          await getGlobalStatsDoc(db).set(update, { merge: true });
+        } catch (err) {
+          console.warn('[hox-stats] leaderboard upload log failed', err);
+        }
+      }
+
+      async function loadCommunityStats() {
+        if (!statsPanelOpen) {
+          return;
+        }
+        if (!hasFirebaseConfig(getFirebaseConfig())) {
+          setStatsStatus('Add meg a Firebase kulcsokat a statisztikákhoz.', true);
+          renderCommunityStats(null);
+          return;
+        }
+        setStatsStatus('Statisztikák betöltése...');
+        try {
+          const db = await ensureFirebase();
+          const snap = await getGlobalStatsDoc(db).get();
+          const data = snap.exists ? snap.data() || {} : {};
+          renderCommunityStats(data);
+          setStatsStatus('Frissítve.');
+        } catch (err) {
+          setStatsStatus(err.message || 'Nem sikerült betölteni a statisztikákat.', true);
+        }
+      }
+
+      function renderLeaderboard(entries, difficulty = leaderboardDifficultySelect.value) {
+        leaderboardList.innerHTML = '';
+        const diffLabel = difficultyLabels[difficulty] || difficulty;
+        if (!entries.length) {
+          setLeaderboardStatus(`Ehhez a nehézséghez (${diffLabel}) még nincs rangsorolt felhasználó.`);
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        entries.forEach((entry) => {
+          const li = document.createElement('li');
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'leaderboard-name';
+          nameSpan.textContent = entry.name || 'Névtelen';
+          const scoreSpan = document.createElement('span');
+          scoreSpan.className = 'leaderboard-score';
+          scoreSpan.textContent = `${entry.score} diszlájk`;
+          li.appendChild(nameSpan);
+          li.appendChild(scoreSpan);
+          fragment.appendChild(li);
+        });
+        leaderboardList.appendChild(fragment);
+        setLeaderboardStatus(` ${entries.length} rangsorolt felhasználó (${diffLabel})`);
+      }
+
+      function updatePlayerLeaderboardBest(entries, difficulty) {
+        const name = getKnownPlayerName();
+        const normalized = name.toLowerCase();
+        if (!normalized) {
+          playerLeaderboardBest[difficulty] = 0;
+          playerHasLeaderboardScore[difficulty] = false;
+          return;
+        }
+        const match = entries.find(
+          (entry) => typeof entry.name === 'string' && entry.name.trim().toLowerCase() === normalized
+        );
+        const hasScore = Boolean(match);
+        playerLeaderboardBest[difficulty] = hasScore ? match.score ?? 0 : 0;
+        playerHasLeaderboardScore[difficulty] = hasScore;
+      }
+
+      function getPlayerLeaderboardBest(difficulty = currentDifficulty) {
+        return playerLeaderboardBest[difficulty] ?? 0;
+      }
+
+      function getHasLeaderboardScore(difficulty = currentDifficulty) {
+        return Boolean(playerHasLeaderboardScore[difficulty]);
+      }
+
+      async function refreshLeaderboard(difficulty = leaderboardDifficultySelect.value, options = {}) {
+        if (firebaseInitError && hasFirebaseConfig(getFirebaseConfig())) {
+          firebaseInitError = '';
+        }
+        if (firebaseInitError && !hasFirebaseConfig(getFirebaseConfig())) {
+          setLeaderboardStatus(firebaseInitError, true);
+          return;
+        }
+        const diff = difficulty || currentDifficulty;
+        const diffLabel = difficultyLabels[diff] || diff;
+        leaderboardDifficultySelect.value = diff;
+        if (!options.silentStatus) {
+          setLeaderboardStatus(`Ranglista betöltése (${diffLabel})...`);
+        }
+        leaderboardList.innerHTML = '';
+        try {
+          const db = await ensureFirebase();
+          const snapshot = await db
+            .collection(LEADERBOARD_COLLECTION)
+            .doc(diff)
+            .collection('entries')
+            .orderBy('score', 'desc')
+            .limit(10)
+            .get();
+          const entries = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data() || {};
+            entries.push({
+              name: data.name || 'Névtelen',
+              score: data.score ?? 0,
+            });
+          });
+          updatePlayerLeaderboardBest(entries, diff);
+          renderLeaderboard(entries, diff);
+        } catch (err) {
+          setLeaderboardStatus(err.message || 'Nem sikerült betölteni a ranglistát.', true);
+        }
+      }
+
+      function getPlayerName() {
+        const stored = (localStorage.getItem(NAME_STORAGE_KEY) || '').trim();
+        if (playerNameLocked && stored) {
+          return stored.slice(0, 24);
+        }
+        const raw = (playerNameInput.value || '').trim();
+        if (!raw) {
+          setSubmissionStatus('Adj meg egy nevet, és rögzítjük.', true);
+          return '';
+        }
+        const cleaned = raw.slice(0, 24);
+        localStorage.setItem(NAME_STORAGE_KEY, cleaned);
+        setNameLocked(true);
+        return cleaned;
+      }
+
+      async function submitScoreToLeaderboard() {
+        if (submittingScore) {
+          return;
+        }
+        if (!state.gameOver) {
+          setSubmissionStatus('Előbb fejezd be a játékot.', true);
+          return;
+        }
+        if (!runGuard.endedAt) {
+          finalizeRunGuard();
+        }
+        if (score !== runGuard.lastScore) {
+          markCheat('A pontszám utólag módosult.');
+          recordScoreGuard(score);
+        }
+        if (runGuard.flagged) {
+          const reason = runGuard.reasons[0] || 'Gyanús futás észlelve.';
+          setSubmissionStatus('Cheat gyanú miatt nem töltjük fel: ' + reason, true);
+          submitScoreBtn.disabled = true;
+          return;
+        }
+        if (firebaseInitError && hasFirebaseConfig(getFirebaseConfig())) {
+          firebaseInitError = '';
+        }
+        if (firebaseInitError && !hasFirebaseConfig(getFirebaseConfig())) {
+          setSubmissionStatus(firebaseInitError, true);
+          return;
+        }
+        submittingScore = true;
+        submitScoreBtn.disabled = true;
+        let keepDisabled = false;
+        const name = getPlayerName();
+        if (!name) {
+          submittingScore = false;
+          submitScoreBtn.disabled = false;
+          return;
+        }
+        let leaderboardBest = getPlayerLeaderboardBest(currentDifficulty);
+        let hasLeaderboardScore = getHasLeaderboardScore(currentDifficulty);
+        setSubmissionStatus('Ranglistás rekord ellenőrzése...');
+        try {
+          const db = await ensureFirebase();
+          const bestResult = await fetchPlayerBestFromLeaderboard(name, currentDifficulty, db);
+          leaderboardBest = bestResult.best;
+          hasLeaderboardScore = bestResult.found;
+          playerLeaderboardBest[currentDifficulty] = leaderboardBest;
+          playerHasLeaderboardScore[currentDifficulty] = hasLeaderboardScore;
+          if (score <= leaderboardBest) {
+            setSubmissionStatus(`Döntsd meg a ranglistás pontod (${leaderboardBest}), hogy frissíthesd.`, true);
+            keepDisabled = true;
+            return;
+          }
+          setSubmissionStatus('Pont feltöltése...');
+          const entryRef = await findExistingEntryRef(db, name, currentDifficulty);
+          const snap = await entryRef.get();
+          const existing = snap.exists ? snap.data() || {} : {};
+          const existingScore = existing.score ?? 0;
+          if (score <= existingScore) {
+            setSubmissionStatus(`Döntsd meg a ranglistás pontod (${existingScore}), hogy frissíthesd.`, true);
+            keepDisabled = true;
+            return;
+          }
+          const now = Date.now();
+          const payload = {
+            name,
+            normalizedName: normalizeName(name),
+            score,
+            difficulty: currentDifficulty,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAtMs: now,
+          };
+          if (!snap.exists || !existing.createdAt) {
+            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            payload.createdAtMs = existing.createdAtMs || now;
+          }
+          await entryRef.set(payload, { merge: true });
+          recordLeaderboardUploadStats(score, currentDifficulty);
+          playerLeaderboardBest[currentDifficulty] = Math.max(playerLeaderboardBest[currentDifficulty] ?? 0, score);
+          playerHasLeaderboardScore[currentDifficulty] = true;
+          const updatedMessage = snap.exists ? 'Pontszám frissítve!' : 'Feltöltve!';
+          setSubmissionStatus(updatedMessage);
+          refreshLeaderboard(currentDifficulty, { silentStatus: true });
+        } catch (err) {
+          setSubmissionStatus(err.message || 'A feltöltés nem sikerült.', true);
+        } finally {
+          submittingScore = false;
+          submitScoreBtn.disabled = keepDisabled;
+        }
+      }
+
+      function makeAudio(src, volume = 1) {
+        const audio = new Audio(src);
+        audio.preload = 'auto';
+        audio.volume = volume;
+        return audio;
+      }
+
+      function playAudioInstance(baseAudio) {
+        if (!baseAudio) {
+          return null;
+        }
+        const instance = baseAudio.cloneNode(true);
+        instance.volume = baseAudio.volume;
+        instance.play().catch(() => {});
+        return instance;
+      }
+
+      function playRandomCollectSound() {
+        if (!collectSounds.length) {
+          return;
+        }
+        const ready = collectSounds.filter((audio) => audio.readyState >= 2);
+        const pool = ready.length ? ready : collectSounds;
+        const choice = pool[Math.floor(Math.random() * pool.length)];
+        const instance = playAudioInstance(choice);
+        if (instance) {
+          activeCollectSound = instance;
+          startTalkingAnimation();
+          instance.onended = () => {
+            if (activeCollectSound === instance) {
+              activeCollectSound = null;
+              stopTalkingAnimation();
+            }
+          };
+        }
+      }
+
+      function playDeathSound() {
+        stopDeathSound();
+        const instance = playAudioInstance(deathSound);
+        if (instance) {
+          activeDeathSound = instance;
+          instance.onended = () => {
+            if (activeDeathSound === instance) {
+              activeDeathSound = null;
+            }
+          };
+        }
+      }
+
+      function stopDeathSound() {
+        if (activeDeathSound) {
+          activeDeathSound.pause();
+          activeDeathSound.currentTime = 0;
+          activeDeathSound = null;
+        }
+      }
+
+      function stopCollectSound() {
+        if (activeCollectSound) {
+          activeCollectSound.pause();
+          activeCollectSound.currentTime = 0;
+          activeCollectSound = null;
+        }
+        stopTalkingAnimation();
+      }
+
+      function generateRunToken() {
+        if (window.crypto && window.crypto.getRandomValues) {
+          const buffer = new Uint32Array(2);
+          window.crypto.getRandomValues(buffer);
+          return `${buffer[0].toString(16)}${buffer[1].toString(16)}`;
+        }
+        return Math.random().toString(16).slice(2) + Date.now().toString(16);
+      }
+
+      function markCheat(reason) {
+        if (!reason) {
+          return;
+        }
+        runGuard.flagged = true;
+        runGuard.reasons.push(reason);
+        setSubmissionStatus('Cheat gyanú: ' + reason, true);
+        console.warn('[hox-guard] Cheating suspicion:', reason);
+      }
+
+      function startRunGuard(difficulty) {
+        runGuard.id = generateRunToken();
+        runGuard.startedAt = 0;
+        runGuard.endedAt = 0;
+        runGuard.lastScore = 0;
+        runGuard.bestScore = 0;
+        runGuard.difficulty = difficulty;
+        runGuard.flagged = false;
+        runGuard.reasons = [];
+        runGuard.allowedScore = 0;
+      }
+
+      function recordScoreGuard(newScore) {
+        const delta = newScore - runGuard.lastScore;
+        if (delta > 1) {
+          markCheat('A pontszám túl nagyot ugrott egy lépésben.');
+        } else if (delta < 0) {
+          markCheat('A pontszám csökkent, ami nem megengedett.');
+        }
+        runGuard.lastScore = newScore;
+        runGuard.bestScore = Math.max(runGuard.bestScore, newScore);
+      }
+
+      function computeMaxScoreAllowed(elapsedMs, difficulty) {
+        const preset = difficultyPresets[difficulty] || difficultyPresets.normal;
+        const minSpawn = Math.max(difficultyRamp.minSpawnInterval, preset.spawnInterval - difficultyRamp.maxSpawnReduction);
+        const theoreticalCollects = Math.ceil(elapsedMs / minSpawn) + 6;
+        return Math.max(5, Math.ceil(theoreticalCollects * 1.1));
+      }
+
+      function finalizeRunGuard() {
+        if (!runGuard.startedAt) {
+          runGuard.startedAt = state.startTime || performance.now();
+        }
+        runGuard.endedAt = performance.now();
+        const elapsed = Math.max(1, runGuard.endedAt - runGuard.startedAt);
+        runGuard.allowedScore = computeMaxScoreAllowed(elapsed, runGuard.difficulty);
+        if (currentDifficulty !== runGuard.difficulty) {
+          markCheat('A nehézség futás közben megváltozott.');
+        }
+        if (score !== runGuard.lastScore) {
+          markCheat('A pontszám módosult a gyűjtések folyamatán kívül.');
+          recordScoreGuard(score);
+        }
+        if (score > runGuard.allowedScore + 3) {
+          markCheat(`Túl gyors pontgyűjtés (${score} > ${runGuard.allowedScore}).`);
+        }
+      }
+
+      function loadBirdFrame(key, src, resizeOnLoad = false) {
+        birdReady[key] = false;
+        if (!src) {
+          return;
+        }
+        const img = birdImages[key];
+        img.onload = () => {
+          birdReady[key] = true;
+          if (
+            resizeOnLoad ||
+            (key === 'base' && !birdReady.talk) ||
+            (!birdReady.base && key === 'talk')
+          ) {
+            sizeBirdFromImage(img);
+          }
+        };
+        img.onerror = () => {
+          birdReady[key] = false;
+        };
+        img.src = src;
+      }
+
+      function loadBirdSprites(choice) {
+        const sprite = birdSprites[choice] || birdSprites.bird1;
+        // fall back to bird1's talk frame so bird2 animates like bird1 if a custom talk sprite is missing
+        currentBirdSprite = {
+          base: sprite.base,
+          talk: sprite.talk || birdSprites.bird1.talk,
+        };
+        activeBirdFrame = 'base';
+        stopTalkingAnimation();
+        loadBirdFrame('base', sprite.base, true);
+        loadBirdFrame('talk', currentBirdSprite.talk);
+      }
+
+      function startTalkingAnimation() {
+        if (!currentBirdSprite.talk) {
+          return;
+        }
+        stopTalkingAnimation();
+        talkSwapTimer = setInterval(() => {
+          if (activeBirdFrame === 'base' && birdReady.talk) {
+            activeBirdFrame = 'talk';
+          } else {
+            activeBirdFrame = 'base';
+          }
+        }, 200);
+      }
+
+      function stopTalkingAnimation() {
+        if (talkSwapTimer) {
+          clearInterval(talkSwapTimer);
+          talkSwapTimer = null;
+        }
+        activeBirdFrame = 'base';
+      }
+
+      function setMenuVisibility(open) {
+        menuOpen = open;
+        menuOverlay.style.display = open ? 'flex' : 'none';
+        if (!open && statsPanelOpen) {
+          setStatsPanelVisible(false);
+        }
+      }
+
+      function setStatsPanelVisible(open) {
+        if (!statsPanel) {
+          return;
+        }
+        statsPanelOpen = open;
+        statsPanel.classList.toggle('hidden', !open);
+        if (open) {
+          renderPersonalStats();
+          loadCommunityStats();
+        }
+      }
+
+      function setMusicEnabled(enabled) {
+        musicEnabled = enabled;
+        musicToggle.checked = enabled;
+        musicVolumeRow.classList.toggle('hidden', !enabled);
+        if (enabled) {
+          setMusicVolumeFromSlider(musicVolumeSlider.value);
+          playMusic();
+        } else {
+          stopMusic();
+        }
+      }
+
+      function playMusic() {
+        backgroundMusic.volume = musicVolume;
+        backgroundMusic.loop = true;
+        backgroundMusic.play().catch(() => {});
+      }
+
+      function stopMusic() {
+        backgroundMusic.pause();
+      }
+
+      function setGameVolumeFromSlider(value) {
+        const clamped = Math.max(0, Math.min(100, Number(value)));
+        gameVolume = clamped / 100;
+        collectSounds.forEach((audio) => {
+          audio.volume = baseCollectVolume * gameVolume;
+        });
+        deathSound.volume = baseDeathVolume * gameVolume;
+        if (activeCollectSound) {
+          activeCollectSound.volume = baseCollectVolume * gameVolume;
+        }
+        if (activeDeathSound) {
+          activeDeathSound.volume = baseDeathVolume * gameVolume;
+        }
+      }
+
+      function setMusicVolumeFromSlider(value) {
+        const clamped = Math.max(0, Math.min(100, Number(value)));
+        musicVolume = clamped / 100;
+        backgroundMusic.volume = musicVolume;
+      }
+
+      function updateBestDisplay() {
+        bestEls.easy.textContent = bestScores.easy;
+        bestEls.normal.textContent = bestScores.normal;
+        bestEls.hard.textContent = bestScores.hard;
+      }
+
+      function persistBestScores() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bestScores));
+      }
+
+      function hideGameOverOverlay() {
+        gameOverOverlay.classList.add('hidden');
+      }
+
+      function showGameOverOverlay() {
+        gameOverOverlay.classList.remove('hidden');
+      }
+
+      function sizeBirdFromImage(img = birdImages.base) {
+        if (!img || !img.naturalWidth || !img.naturalHeight) {
+          return;
+        }
+        const ratio = img.naturalWidth / img.naturalHeight || 1;
+        let newHeight = img.naturalHeight * birdScale;
+        newHeight = Math.min(maxBirdSize, Math.max(defaultBirdHeight, newHeight));
+        let newWidth = newHeight * ratio;
+
+        if (newWidth > maxBirdSize) {
+          newWidth = maxBirdSize;
+          newHeight = Math.max(defaultBirdHeight, newWidth / ratio);
+        }
+        if (newWidth < defaultBirdWidth) {
+          newWidth = defaultBirdWidth;
+          newHeight = Math.max(defaultBirdHeight, newWidth / ratio);
+          if (newHeight > maxBirdSize) {
+            newHeight = maxBirdSize;
+            newWidth = newHeight * ratio;
+          }
+        }
+
+        bird.width = newWidth;
+        bird.height = newHeight;
+      }
+
+      function seedAuroraBands() {
+        auroraBands.length = 0;
+        const theme = currentThemeState || getBlendedTheme();
+        const palettes = [
+          theme.auroraA.map((color) => rgbaToString(color)),
+          theme.auroraB.map((color) => rgbaToString(color)),
+          [rgbaToString(theme.auroraB[1]), rgbaToString(theme.auroraA[0])],
+        ];
+        const baseY = canvas.height * 0.16;
+        for (let i = 0; i < 3; i += 1) {
+          auroraBands.push({
+            amplitude: 18 + Math.random() * 24,
+            thickness: 34 + Math.random() * 20,
+            wavelength: 120 + Math.random() * 160,
+            speed: 0.006 + Math.random() * 0.008,
+            offset: Math.random() * Math.PI * 2,
+            baseY: baseY + i * 26 + Math.random() * 12,
+            palette: palettes[i % palettes.length],
+          });
+        }
+      }
+
+      function makeRidgeLayer(options) {
+        const step = options.step || 80;
+        const width = canvas.width * 12 + step * 6; // massively extended so edges never enter view
+        const seed = Math.random() * 10000;
+        const points = [];
+        for (let x = -step * 3, i = 0; x <= width; x += step, i += 1) {
+          const primary = Math.sin((x + seed) * 0.01) * options.amplitude * 0.55;
+          const secondary = Math.sin((x + seed) * 0.023) * options.amplitude * 0.35;
+          const edgeFactor = clamp01(Math.min(i, 6, Math.floor((width - x) / step)) / 4);
+          const jitter = (Math.random() - 0.5) * options.amplitude * 0.32 * (0.45 + edgeFactor * 0.55);
+          const y = options.baseY - (primary + secondary + jitter);
+          points.push({ x, y });
+        }
+        const span = points[points.length - 1].x - points[0].x;
+        // force endpoints to align and smooth transitions so tiling has no boxy seams
+        points[0].y = options.baseY;
+        points[points.length - 1].y = options.baseY;
+        for (let pass = 0; pass < 2; pass += 1) {
+          for (let i = 1; i < points.length - 1; i += 1) {
+            const prev = points[i - 1].y;
+            const curr = points[i].y;
+            const next = points[i + 1].y;
+            points[i].y = (prev + curr * 2 + next) / 4;
+          }
+        }
+        const path = new Path2D();
+        const first = points[0];
+        const last = points[points.length - 1];
+        path.moveTo(first.x, canvas.height);
+        path.lineTo(first.x, first.y || options.baseY);
+        points.forEach((pt) => {
+          path.lineTo(pt.x, pt.y);
+        });
+        path.lineTo(last.x, last.y || options.baseY);
+        path.lineTo(last.x, canvas.height);
+        path.closePath();
+        return {
+          baseY: options.baseY,
+          amplitude: options.amplitude,
+          points,
+          step,
+          span,
+          speed: options.speed || 0.3,
+          offset: 0,
+          colors: options.colors || ['rgba(8, 47, 73, 0.8)', 'rgba(15, 23, 42, 0.95)'],
+          stroke: options.stroke || 'rgba(59, 130, 246, 0.14)',
+          tone: options.tone || 'near',
+          overlapMargin: options.overlapMargin ?? step * 0.6,
+          path,
+        };
+      }
+
+      function seedParallaxRidges() {
+        parallaxRidges.length = 0;
+        const groundY = canvas.height - settings.groundHeight;
+        const layers = [
+          {
+            tone: 'near',
+            baseY: groundY - 18,
+            amplitude: 46,
+            step: 78,
+            speed: 0.26,
+            overlapMargin: 90,
+          },
+          {
+            tone: 'mid',
+            baseY: groundY - 96,
+            amplitude: 54,
+            step: 92,
+            speed: 0.17,
+            overlapMargin: 80,
+          },
+          {
+            tone: 'far',
+            baseY: groundY - 170,
+            amplitude: 60,
+            step: 104,
+            speed: 0.12,
+            overlapMargin: 70,
+          },
+        ];
+        layers.forEach((cfg) => {
+          const minBase = canvas.height * 0.25;
+          const clampedBase = Math.max(minBase, cfg.baseY);
+          parallaxRidges.push(
+            makeRidgeLayer({
+              baseY: clampedBase,
+              amplitude: cfg.amplitude,
+              step: cfg.step,
+              speed: cfg.speed,
+              tone: cfg.tone,
+              overlapMargin: cfg.overlapMargin,
+            })
+          );
+        });
+      }
+
+      function seedSky() {
+        seedAuroraBands();
+        seedParallaxRidges();
+        stars.length = 0;
+        for (let i = 0; i < maxStars; i += 1) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height * 0.5,
+            size: Math.random() * 1.3 + 0.3,
+            speed: Math.random() * 0.15 + 0.05,
+            alpha: Math.random() * 0.4 + 0.3,
+            twinkleDir: Math.random() > 0.5 ? 1 : -1,
+            twinkleSpeed: Math.random() * 0.015 + 0.005,
+            type: Math.random() > 0.9 ? 'shooting' : 'dot',
+            trail: 0,
+            tint: Math.random() > 0.35 ? '255, 255, 255' : '125, 211, 252',
+          });
+        }
+        retintStars(currentThemeState || getBlendedTheme());
+      }
+
+      function applyDifficulty(name) {
+        setDifficultySettings(name);
+        difficultySelect.value = name;
+        currentDifficulty = name;
+        leaderboardDifficultySelect.value = name;
+        resetGame();
+        if (firebaseReady || firebaseReadyPromise) {
+          refreshLeaderboard(name, { silentStatus: true });
+        }
+        flashPill(`Nehézség: ${difficultySelect.options[difficultySelect.selectedIndex].text}`);
+      }
+
+      function setDifficultySettings(name) {
+        const preset = difficultyPresets[name] || difficultyPresets.normal;
+        settings = { ...baseSettings, ...preset };
+        runBaseSettings = { ...settings };
+        minPipeGap = Math.max(120, preset.pipeGap - 30);
+      }
+
+      function applyDifficultyRamp() {
+        const preset = runBaseSettings;
+        const progress = Math.min(score / difficultyRamp.scoreForMax, 1);
+        const gapTighten = difficultyRamp.maxGapTighten * progress;
+        settings.pipeGap = Math.max(minPipeGap, preset.pipeGap - gapTighten);
+
+        const speedBoost = difficultyRamp.maxSpeedBoost * progress;
+        settings.pipeSpeed = preset.pipeSpeed + speedBoost;
+
+        const spawnReduction = difficultyRamp.maxSpawnReduction * progress;
+        settings.spawnInterval = Math.max(difficultyRamp.minSpawnInterval, preset.spawnInterval - spawnReduction);
+
+        const gravityBoost = difficultyRamp.maxGravityBoost * progress;
+        settings.gravity = preset.gravity + gravityBoost;
+      }
+
+      function setBackground(choice) {
+        currentBackground = choice;
+        bgOptions.querySelectorAll('.option-tile').forEach((el) => {
+          el.classList.toggle('selected', el.dataset.bg === choice);
+        });
+      }
+
+      function setBird(choice) {
+        currentBird = choice;
+        birdOptions.querySelectorAll('.option-tile').forEach((el) => {
+          el.classList.toggle('selected', el.dataset.bird === choice);
+        });
+        loadBirdSprites(choice);
+      }
+
+      function defocusSelect(el) {
+        if (el && typeof el.blur === 'function') {
+          requestAnimationFrame(() => el.blur());
+        }
+      }
+
+      function resetGame() {
+        setDifficultySettings(currentDifficulty);
+        stopDeathSound();
+        stopCollectSound();
+        startRunGuard(currentDifficulty);
+        bird.y = canvas.height / 2;
+        bird.velocity = 0;
+        pipes.length = 0;
+        collectibles.length = 0; // clear old dislikes so a fresh set spawns each run
+        pickupMarkers.length = 0;
+        groundOffset = 0;
+        score = 0;
+        recordScoreGuard(score);
+        bestBeforeRun[currentDifficulty] = bestScores[currentDifficulty] ?? 0;
+        state.running = false;
+        state.gameOver = false;
+        state.paused = false;
+        state.pipeTimer = 0;
+        state.lastTime = 0;
+        state.shake = 0;
+        deathShakeInFlight = false;
+        state.startTime = 0;
+        collectibleMisses = 0;
+        lastPipeTop = null;
+        updateScoreIcons();
+        setSubmissionStatus('Futtass egy új rekordot a feltöltéshez.');
+        setSubmitButtonLabel('Feltöltés a ranglistára');
+        submitScoreBtn.disabled = false;
+        drawStaticScene();
+        hideGameOverOverlay();
+      }
+
+      function pickPipeTop() {
+        const minTop = 50;
+        const maxTop = canvas.height - settings.groundHeight - settings.pipeGap - 50;
+        const rawTop = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
+        if (lastPipeTop === null) {
+          lastPipeTop = rawTop;
+          return rawTop;
+        }
+        const lowerBound = Math.max(minTop, lastPipeTop - pipeTopSmoothing.maxDelta);
+        const upperBound = Math.min(maxTop, lastPipeTop + pipeTopSmoothing.maxDelta);
+        const clamped = Math.min(upperBound, Math.max(lowerBound, rawTop));
+        lastPipeTop = Math.round(lastPipeTop + (clamped - lastPipeTop) * pipeTopSmoothing.ease);
+        return lastPipeTop;
+      }
+
+      function spawnPipe() {
+        const topHeight = pickPipeTop();
+        pipes.push({
+          x: canvas.width + settings.pipeWidth,
+          top: topHeight,
+        });
+        spawnCollectible(topHeight);
+      }
+
+      function spawnCollectible(topHeight) {
+        const chanceBoost = Math.min(0.2, score * 0.002);
+        const shouldSpawn = collectibleMisses >= 2 || Math.random() <= collectibleSettings.chance + chanceBoost;
+        if (!shouldSpawn) {
+          collectibleMisses += 1;
+          return;
+        }
+        collectibleMisses = 0;
+        const radius = collectibleSettings.size / 2;
+        const padding = Math.max(collectibleSettings.padding, radius);
+        const gapStart = topHeight + padding;
+        const gapEnd = topHeight + settings.pipeGap - padding;
+        const gapHeight = gapEnd - gapStart;
+        if (gapHeight <= 2) {
+          // No safe room for a collectible in this gap
+          collectibleMisses += 1;
+          return;
+        }
+        const y = Math.random() * gapHeight + gapStart;
+        collectibles.push({
+          x: canvas.width + settings.pipeWidth + 30,
+          y,
+          radius,
+        });
+      }
+
+      function spawnPickupMarker(x, y) {
+        pickupMarkers.push({
+          x,
+          y,
+          elapsed: 0,
+          drift: (Math.random() - 0.5) * pickupMarkerStyle.drift,
+          text: '+1',
+        });
+      }
+
+      function updatePickupMarkers(deltaMs) {
+        for (let i = pickupMarkers.length - 1; i >= 0; i -= 1) {
+          const marker = pickupMarkers[i];
+          marker.elapsed += deltaMs;
+          marker.y -= (pickupMarkerStyle.rise * deltaMs) / pickupMarkerStyle.duration;
+          marker.x += (marker.drift * deltaMs) / pickupMarkerStyle.duration;
+          if (marker.elapsed >= pickupMarkerStyle.duration) {
+            pickupMarkers.splice(i, 1);
+          }
+        }
+      }
+
+      function update(deltaMs, deltaFactor) {
+        if (currentBackground === 'animated') {
+          advanceSkyTheme(deltaMs);
+        } else {
+          skyPulse += deltaMs;
+        }
+        if (state.paused) {
+          return;
+        }
+        applyDifficultyRamp();
+        groundOffset = (groundOffset + settings.pipeSpeed * deltaFactor) % (settings.pipeWidth + 12);
+
+        const gravityToUse = bird.velocity < 0 ? settings.gravity * physicsTuning.ascentGravityFactor : settings.gravity;
+        bird.velocity += gravityToUse * deltaFactor;
+        bird.velocity = Math.min(physicsTuning.maxFallSpeed, bird.velocity);
+        bird.velocity = Math.max(physicsTuning.maxRiseSpeed, bird.velocity);
+        bird.y += bird.velocity * deltaFactor;
+
+        state.pipeTimer += deltaMs;
+        if (state.pipeTimer >= settings.spawnInterval) {
+          spawnPipe();
+          state.pipeTimer = 0;
+        }
+
+        pipes.forEach((pipe) => {
+          pipe.x -= settings.pipeSpeed * deltaFactor;
+        });
+
+        while (pipes.length && pipes[0].x + settings.pipeWidth < 0) {
+          pipes.shift();
+        }
+
+        collectibles.forEach((item) => {
+          item.x -= settings.pipeSpeed * deltaFactor;
+        });
+        while (collectibles.length && collectibles[0].x + collectibleSettings.size < 0) {
+          collectibles.shift();
+        }
+        updatePickupMarkers(deltaMs);
+
+        constrainBird();
+        checkCollisions();
+        if (state.gameOver) {
+          return;
+        }
+        checkCollectibleCollisions();
+      }
+
+      function constrainBird() {
+        if (bird.y - bird.height / 2 < 0) {
+          bird.y = bird.height / 2;
+          bird.velocity = 0;
+        }
+        const groundY = canvas.height - settings.groundHeight;
+        if (bird.y + bird.height / 2 > groundY) {
+          endGame('ground');
+        }
+      }
+
+      function checkCollisions() {
+        const graceActive = !state.startTime || performance.now() - state.startTime < startGraceMs;
+        if (graceActive) {
+          return;
+        }
+        const padX = Math.max(6, bird.width * collisionShrink);
+        const padY = Math.max(6, bird.height * collisionShrink);
+        for (const pipe of pipes) {
+          const gapBottom = pipe.top + settings.pipeGap;
+          const birdLeft = bird.x - bird.width / 2 + padX;
+          const birdRight = bird.x + bird.width / 2 - padX;
+          const birdTop = bird.y - bird.height / 2 + padY;
+          const birdBottom = bird.y + bird.height / 2 - padY;
+
+          if (birdRight > pipe.x && birdLeft < pipe.x + settings.pipeWidth) {
+            if (birdTop < pipe.top || birdBottom > gapBottom) {
+              endGame('pipe');
+              break;
+            }
+          }
+        }
+      }
+
+      function checkCollectibleCollisions() {
+        if (!collectibles.length) {
+          return;
+        }
+        const padX = Math.max(6, bird.width * collisionShrink);
+        const padY = Math.max(6, bird.height * collisionShrink);
+        const birdLeft = bird.x - bird.width / 2 + padX;
+        const birdRight = bird.x + bird.width / 2 - padX;
+        const birdTop = bird.y - bird.height / 2 + padY;
+        const birdBottom = bird.y + bird.height / 2 - padY;
+        for (let i = collectibles.length - 1; i >= 0; i -= 1) {
+          const item = collectibles[i];
+          const left = item.x - item.radius;
+          const right = item.x + item.radius;
+          const top = item.y - item.radius;
+          const bottom = item.y + item.radius;
+          if (birdRight > left && birdLeft < right && birdTop < bottom && birdBottom > top) {
+            const { x, y } = item;
+            collectibles.splice(i, 1);
+            score += baseCollectScore;
+            recordScoreGuard(score);
+            updateScoreIcons();
+            spawnPickupMarker(x, y);
+            maybeUpdateBest();
+            flashPill('+1 diszlájk');
+            playRandomCollectSound();
+          }
+        }
+      }
+
+      function draw() {
+        ctx.save();
+        if (state.shake > 0) {
+          const magnitude = state.shake * 0.8;
+          ctx.translate((Math.random() - 0.5) * magnitude, (Math.random() - 0.5) * magnitude);
+          state.shake = Math.max(0, state.shake - 1.2);
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+        drawPipes();
+        drawCollectibles();
+        drawGround();
+        drawBird();
+        drawPickupMarkers();
+        if (state.paused && state.running && !state.gameOver) {
+          drawOverlayLabel('Szünet');
+        }
+        ctx.restore();
+      }
+
+      function drawOverlayLabel(text) {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
+        ctx.fillRect(0, canvas.height / 2 - 36, canvas.width, 72);
+        ctx.fillStyle = '#e5e7eb';
+        ctx.font = '24px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 8);
+      }
+
+      function drawStaticScene() {
+        draw();
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+        ctx.font = '18px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 1;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.strokeText('Nyomj Space-t, vagy kattints a kezdéshez!', canvas.width / 2, canvas.height / 2 + 130);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeText('Nyomj Space-t, vagy kattints a kezdéshez!', canvas.width / 2, canvas.height / 2 + 130);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText('Nyomj Space-t, vagy kattints a kezdéshez!', canvas.width / 2, canvas.height / 2 + 130);
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+      }
+
+      function drawAuroraBands() {
+        if (!auroraBands.length) {
+          return;
+        }
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const theme = currentThemeState || getBlendedTheme();
+        auroraBands.forEach((band, index) => {
+          band.offset += band.speed;
+          const step = 24;
+          const topY = band.baseY + Math.sin(band.offset * 0.35) * 6;
+          const path = new Path2D();
+          path.moveTo(0, canvas.height);
+          path.lineTo(0, topY);
+          for (let x = 0; x <= canvas.width + step; x += step) {
+            const wave = Math.sin((x + band.offset * 90) * (Math.PI * 2 / band.wavelength)) * band.amplitude;
+            const wobble = Math.cos((x + band.offset * 65) * 0.01) * band.amplitude * 0.25;
+            const y = topY + wave + wobble;
+            path.lineTo(x, y);
+          }
+          path.lineTo(canvas.width, canvas.height);
+          path.closePath();
+          const palette = index % 2 === 0 ? theme.auroraA : theme.auroraB;
+          const gradient = ctx.createLinearGradient(0, topY - band.thickness, 0, topY + band.thickness * 0.8);
+          gradient.addColorStop(0, rgbaToString(palette[0]));
+          gradient.addColorStop(1, rgbaToString(palette[1]));
+          const shimmer = 0.05 * Math.sin(skyPulse * 0.0012 + index);
+          ctx.globalAlpha = 0.68 - index * 0.08 + shimmer;
+          ctx.filter = 'blur(9px)';
+          ctx.fillStyle = gradient;
+          ctx.fill(path);
+          ctx.filter = 'none';
+          ctx.globalAlpha = 0.46 - index * 0.05 + shimmer * 0.6;
+          ctx.fill(path);
+        });
+        ctx.restore();
+      }
+
+      function drawParallaxRidges() {
+        if (!parallaxRidges.length) {
+          return;
+        }
+        ctx.save();
+        const theme = currentThemeState || getBlendedTheme();
+        parallaxRidges.forEach((layer, index) => {
+          layer.offset = (layer.offset + layer.speed) % layer.span;
+          const palette =
+            layer.tone === 'near'
+              ? theme.ridges.near
+              : layer.tone === 'mid'
+              ? [
+                  mixRgba(theme.ridges.near[0], theme.ridges.far[0], 0.5),
+                  mixRgba(theme.ridges.near[1], theme.ridges.far[1], 0.5),
+                ]
+              : theme.ridges.far;
+          const stroke =
+            layer.tone === 'near'
+              ? theme.ridgeStrokes.near
+              : layer.tone === 'mid'
+              ? mixRgba(theme.ridgeStrokes.near, theme.ridgeStrokes.far, 0.5)
+              : theme.ridgeStrokes.far;
+            const breathing = 0.04 * Math.sin(skyPulse * 0.0008 + index);
+            const shift = -layer.offset;
+            const path = layer.path;
+            ctx.save();
+            ctx.translate(shift, 0);
+            const gradient = ctx.createLinearGradient(0, layer.baseY - layer.amplitude * 1.4, 0, canvas.height);
+            gradient.addColorStop(0, rgbaToString(palette[0]));
+            gradient.addColorStop(1, rgbaToString(palette[1]));
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = 0.92 - index * 0.12 + breathing;
+            ctx.fill(path);
+            ctx.strokeStyle = rgbaToString(stroke);
+            ctx.lineWidth = 1.2;
+            ctx.globalAlpha = 0.78 + breathing * 0.5;
+            ctx.stroke(path);
+            ctx.restore();
+          });
+          ctx.restore();
+        }
+
+      function drawStars() {
+        stars.forEach((star) => {
+          if (star.type === 'shooting' && star.trail > 0) {
+            ctx.save();
+            const gradient = ctx.createLinearGradient(star.x + star.trail, star.y, star.x, star.y);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            gradient.addColorStop(1, `rgba(255, 255, 255, ${0.4 * star.alpha})`);
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = Math.max(1, star.size * 1.6);
+            ctx.beginPath();
+            ctx.moveTo(star.x + star.trail, star.y);
+            ctx.lineTo(star.x, star.y);
+            ctx.stroke();
+            ctx.restore();
+            star.trail = Math.max(0, star.trail - 1);
+          }
+
+          const nextAlpha = star.alpha + star.twinkleSpeed * star.twinkleDir;
+          star.alpha = Math.max(0.15, Math.min(0.95, nextAlpha));
+          if (star.alpha === 0.15 || star.alpha === 0.95) {
+            star.twinkleDir *= -1;
+          }
+          const tint = star.tint || '255, 255, 255';
+          ctx.fillStyle = `rgba(${tint}, ${0.35 + star.alpha * 0.6})`;
+          ctx.fillRect(star.x, star.y, star.size, star.size);
+          star.x -= star.speed;
+
+          const shootingChance = 0.0006;
+          if (star.type !== 'shooting' && Math.random() < shootingChance) {
+            star.type = 'shooting';
+            star.trail = Math.random() * 40 + 20;
+            star.speed += 0.8;
+          }
+
+          if (star.x < -2) {
+            star.x = canvas.width + 2;
+            star.y = Math.random() * canvas.height * 0.5;
+            star.alpha = Math.random() * 0.4 + 0.3;
+            star.trail = 0;
+            star.type = Math.random() > 0.9 ? 'shooting' : 'dot';
+          }
+        });
+      }
+
+      function drawBackground() {
+        if (currentBackground === 'animated') {
+          drawGradientSky();
+          drawAuroraBands();
+          drawStars();
+          drawParallaxRidges();
+        } else {
+          const bgEntry = backgroundImages[currentBackground];
+          if (bgEntry && bgEntry.ready) {
+            const img = bgEntry.image;
+            const scale = Math.max(canvas.width / img.width, (canvas.height - settings.groundHeight) / img.height);
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+            const dx = (canvas.width - drawW) / 2;
+            const dy = (canvas.height - settings.groundHeight - drawH) / 2;
+            ctx.drawImage(img, dx, dy, drawW, drawH);
+            // subtle overlay
+            const fade = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            fade.addColorStop(0, 'rgba(15, 23, 42, 0.05)');
+            fade.addColorStop(1, 'rgba(15, 23, 42, 0.2)');
+            ctx.fillStyle = fade;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          } else {
+            drawGradientSky();
+          }
+        }
+      }
+
+      function drawGradientSky() {
+        const theme = currentThemeState || getBlendedTheme();
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const stops = theme.skyStops;
+        const positions = [0, 0.42, 0.74, 1];
+        stops.forEach((stop, index) => {
+          gradient.addColorStop(positions[index] ?? index / Math.max(1, stops.length - 1), rgbaToString(stop));
+        });
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const glow = ctx.createRadialGradient(
+          canvas.width * 0.22,
+          canvas.height * 0.18,
+          18,
+          canvas.width * 0.22,
+          canvas.height * 0.18,
+          200
+        );
+        glow.addColorStop(0, rgbaToString(theme.glow));
+        glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const sweepX = (Math.sin(skyPulse * 0.00065) * 0.5 + 0.5) * canvas.width;
+        const sweep = ctx.createLinearGradient(sweepX - canvas.width, 0, sweepX + canvas.width, canvas.height);
+        const hazeColor = rgbaToString(theme.haze);
+        sweep.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        sweep.addColorStop(0.45, hazeColor);
+        sweep.addColorStop(0.55, hazeColor);
+        sweep.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = sweep;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
+
+        const horizonPulse = (Math.sin(skyPulse * 0.00045) * 0.5 + 0.5) * 0.14 + 0.08;
+        const horizon = ctx.createLinearGradient(0, canvas.height * 0.28, 0, canvas.height * 0.7);
+        horizon.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        horizon.addColorStop(0.5, rgbaToString(mixRgba(theme.glow, theme.haze, 0.5)));
+        horizon.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.globalAlpha = horizonPulse;
+        ctx.fillStyle = horizon;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
+      }
+
+      function drawPipes() {
+        pipes.forEach((pipe) => {
+          const lipHeight = 14;
+          const bodyGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + settings.pipeWidth, 0);
+          bodyGradient.addColorStop(0, '#0b7a5d');
+          bodyGradient.addColorStop(0.48, '#10b981');
+          bodyGradient.addColorStop(0.52, '#0ea371');
+          bodyGradient.addColorStop(1, '#0b7a5d');
+
+          const highlight = ctx.createLinearGradient(pipe.x, 0, pipe.x + settings.pipeWidth, 0);
+          highlight.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
+          highlight.addColorStop(0.4, 'rgba(255, 255, 255, 0.06)');
+          highlight.addColorStop(1, 'rgba(0, 0, 0, 0.08)');
+
+          const drawPipeSection = (y, height) => {
+            ctx.fillStyle = bodyGradient;
+            ctx.fillRect(pipe.x, y, settings.pipeWidth, height);
+            ctx.fillStyle = highlight;
+            ctx.fillRect(pipe.x, y, settings.pipeWidth, height);
+            ctx.strokeStyle = 'rgba(3, 53, 36, 0.55)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(pipe.x + 1.5, y + 1.5, settings.pipeWidth - 3, height - 3);
+          };
+
+          drawPipeSection(0, pipe.top);
+          ctx.fillStyle = '#0c8f6d';
+          ctx.fillRect(pipe.x - 2, pipe.top - lipHeight, settings.pipeWidth + 4, lipHeight);
+
+          const bottomY = pipe.top + settings.pipeGap;
+          const bottomHeight = canvas.height - settings.groundHeight - bottomY;
+          drawPipeSection(bottomY, bottomHeight);
+          ctx.fillStyle = '#0c8f6d';
+          ctx.fillRect(pipe.x - 2, bottomY, settings.pipeWidth + 4, lipHeight);
+        });
+      }
+
+      function drawGround() {
+        const groundY = canvas.height - settings.groundHeight;
+        const groundGradient = ctx.createLinearGradient(0, groundY, 0, canvas.height);
+        groundGradient.addColorStop(0, '#facc15');
+        groundGradient.addColorStop(0.5, '#f59e0b');
+        groundGradient.addColorStop(1, '#d97706');
+        ctx.fillStyle = groundGradient;
+        ctx.fillRect(0, groundY, canvas.width, settings.groundHeight);
+        ctx.fillStyle = 'rgba(180, 83, 9, 0.75)';
+        ctx.fillRect(0, groundY, canvas.width, 3);
+        ctx.fillStyle = '#fde68a';
+        for (let i = -groundStripe.step; i < canvas.width + groundStripe.step; i += groundStripe.step) {
+          ctx.fillRect(i - groundOffset, groundY + 6, groundStripe.width, groundStripe.height);
+        }
+      }
+
+      function drawCollectibles() {
+        collectibles.forEach((item) => {
+          ctx.save();
+          ctx.translate(item.x, item.y);
+          if (dislikeImageReady) {
+            ctx.drawImage(dislikeImage, -item.radius, -item.radius, item.radius * 2, item.radius * 2);
+          } else {
+            ctx.shadowColor = 'rgba(250, 204, 21, 0.75)';
+            ctx.shadowBlur = 22;
+            const radial = ctx.createRadialGradient(0, 0, item.radius * 0.15, 0, 0, item.radius);
+            radial.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
+            radial.addColorStop(1, 'rgba(250, 204, 21, 0.9)');
+            ctx.fillStyle = radial;
+            ctx.beginPath();
+            ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0f172a';
+            ctx.font = `${Math.max(14, item.radius)}px \"Segoe UI\", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+          ctx.fillText('diszlájk', 0, 1);
+          }
+          ctx.restore();
+        });
+      }
+
+      function drawPickupMarkers() {
+        if (!pickupMarkers.length) {
+          return;
+        }
+        pickupMarkers.forEach((marker) => {
+          const progress = Math.min(1, marker.elapsed / pickupMarkerStyle.duration);
+          const alpha = 1 - progress;
+          const scale = 1 + 0.2 * (1 - progress);
+          ctx.save();
+          ctx.translate(marker.x, marker.y);
+          ctx.scale(scale, scale);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = '#fef3c7';
+          ctx.strokeStyle = 'rgba(15, 23, 42, 0.45)';
+          ctx.lineWidth = 2;
+          ctx.font = 'bold 20px \"Segoe UI\", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.strokeText(marker.text, 0, 0);
+          ctx.fillText(marker.text, 0, 0);
+          ctx.restore();
+        });
+      }
+
+      function drawBird() {
+        const angle = Math.max(Math.min(bird.velocity / 10, 0.65), -0.6);
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+        ctx.rotate(angle);
+        const activeImg = birdImages[activeBirdFrame] || birdImages.base;
+        if (birdReady[activeBirdFrame]) {
+          ctx.drawImage(activeImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
+        } else if (birdReady.base) {
+          ctx.drawImage(birdImages.base, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
+        } else {
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fb7185';
+          ctx.beginPath();
+          ctx.arc(bird.width / 4, 0, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function updateScoreIcons() {
+        if (score !== runGuard.lastScore) {
+          markCheat('A pontszám manuális módosításra utal.');
+          recordScoreGuard(score);
+        }
+        scoreNumber.textContent = score;
+        if (!dislikeImageReady) {
+          dislikeIconEl.alt = 'Dislike ikon nem töltodött be';
+        }
+      }
+
+      function flap() {
+        bird.velocity = settings.flap;
+      }
+
+      function handleInput() {
+        if (menuOpen) {
+          return;
+        }
+        if (state.gameOver) {
+          resetGame();
+          return;
+        }
+        if (state.paused) {
+          togglePause(false);
+        }
+        if (!state.running) {
+          const now = performance.now();
+          state.running = true;
+          state.startTime = now;
+          state.lastTime = now;
+          runGuard.startedAt = now;
+          requestAnimationFrame(loop);
+        }
+        flap();
+      }
+
+      function togglePause(explicitPause) {
+        if (!state.running || state.gameOver) {
+          return;
+        }
+        if (typeof explicitPause === 'boolean') {
+          state.paused = explicitPause;
+        } else {
+          state.paused = !state.paused;
+        }
+      }
+
+      function loop(timestamp) {
+        if (!state.running) {
+          return;
+        }
+        const deltaMs = timestamp - (state.lastTime || timestamp);
+        state.lastTime = timestamp;
+        const deltaFactor = Math.min(deltaMs / 16.666, 2);
+        update(deltaMs, deltaFactor);
+        draw();
+        if (state.running) {
+          requestAnimationFrame(loop);
+        }
+      }
+
+      function maybeUpdateBest() {
+        if (runGuard.flagged) {
+          return;
+        }
+        const currentBest = bestScores[currentDifficulty] ?? 0;
+        if (score <= currentBest) {
+          return;
+        }
+        bestScores[currentDifficulty] = score;
+        persistBestScores();
+        updateBestDisplay();
+        flashPill('Új rekord!');
+        if (statsPanelOpen) {
+          renderPersonalStats();
+        }
+      }
+
+      function flashPill(text) {
+        // status pill removed; keep hook to avoid breaking callers
+      }
+
+      async function handleGameOver(reason = '') {
+        leaderboardDifficultySelect.value = currentDifficulty;
+        finalizeRunGuard();
+        const runDurationMs =
+          runGuard.startedAt && runGuard.endedAt ? Math.max(0, Math.round(runGuard.endedAt - runGuard.startedAt)) : 0;
+        if (!runGuard.flagged) {
+          recordPersonalTotals(score, runDurationMs);
+          recordGlobalStats({
+            scoreValue: score,
+            difficulty: currentDifficulty,
+            deathReason: reason,
+            durationMs: runDurationMs,
+            background: currentBackground,
+            bird: currentBird,
+          });
+          if (statsPanelOpen) {
+            renderPersonalStats();
+          }
+        }
+        if (runGuard.flagged) {
+          submitScoreBtn.disabled = true;
+          const reason = runGuard.reasons[0] || 'Gyanús játék észlelve.';
+          setSubmissionStatus('Csalás gyanúja miatt nem tölthető fel: ' + reason, true);
+          if (firebaseReady || firebaseReadyPromise) {
+            refreshLeaderboard(currentDifficulty, { silentStatus: true });
+          }
+          return;
+        }
+        submitScoreBtn.disabled = true;
+        setSubmissionStatus('Ranglistás rekord ellenőrzése...');
+        let leaderboardBest = getPlayerLeaderboardBest(currentDifficulty);
+        let hasLeaderboardScore = getHasLeaderboardScore(currentDifficulty);
+        try {
+          const nameForCheck = getKnownPlayerName();
+          if (nameForCheck && (firebaseReady || firebaseReadyPromise)) {
+            const db = await ensureFirebase();
+            const bestResult = await fetchPlayerBestFromLeaderboard(nameForCheck, currentDifficulty, db);
+            leaderboardBest = bestResult.best;
+            hasLeaderboardScore = bestResult.found;
+            playerLeaderboardBest[currentDifficulty] = leaderboardBest;
+            playerHasLeaderboardScore[currentDifficulty] = hasLeaderboardScore;
+          }
+        } catch (err) {
+          // keep existing leaderboardBest fallback
+        }
+        const canUpdate = score > leaderboardBest;
+        submitScoreBtn.disabled = !canUpdate;
+        if (canUpdate) {
+          const actionLabel = hasLeaderboardScore ? 'Pontszám frissítése' : 'Pontszám feltöltése';
+          setSubmitButtonLabel(actionLabel);
+          const actionStatus = hasLeaderboardScore
+            ? 'Új rekord! Frissítsd a pontod: ' + score + ' diszlájk.'
+            : 'Új rekord! Töltsd fel a pontod: ' + score + ' diszlájk.';
+          setSubmissionStatus(actionStatus);
+        } else {
+          setSubmitButtonLabel('Feltöltés a ranglistára');
+          setSubmissionStatus(
+            'A ' + score + ' diszlájk nem nagyobb, mint a ranglistás rekordod (' + leaderboardBest + '). Döntsd meg, hogy frissíthess.',
+            true
+          );
+        }
+        if (firebaseReady || firebaseReadyPromise) {
+          refreshLeaderboard(currentDifficulty, { silentStatus: true });
+        }
+      }
+
+      function endGame(reason) {
+        if (state.gameOver) {
+          return;
+        }
+        state.gameOver = true;
+        state.running = false;
+        state.paused = false;
+        state.shake = reason === 'pipe' ? 20 : 14;
+        stopCollectSound();
+        playDeathSound();
+        showGameOverOverlay();
+        runDeathShake();
+        handleGameOver(reason);
+      }
+
+      if (statsBtn) {
+        statsBtn.addEventListener('click', () => setStatsPanelVisible(!statsPanelOpen));
+      }
+      if (statsCloseBtn) {
+        statsCloseBtn.addEventListener('click', () => setStatsPanelVisible(false));
+      }
+      if (statsRefreshBtn) {
+        statsRefreshBtn.addEventListener('click', () => {
+          if (!statsPanelOpen) {
+            setStatsPanelVisible(true);
+            return;
+          }
+          renderPersonalStats();
+          loadCommunityStats();
+        });
+      }
+      difficultySelect.addEventListener('change', (event) => {
+        applyDifficulty(event.target.value);
+        defocusSelect(event.target); // let Space start the game instead of reopening the list
+      });
+      startBtn.addEventListener('click', () => {
+        setMenuVisibility(false);
+        resetGame();
+      });
+      musicToggle.addEventListener('change', (event) => setMusicEnabled(event.target.checked));
+      gameVolumeSlider.addEventListener('input', (event) => setGameVolumeFromSlider(event.target.value));
+      musicVolumeSlider.addEventListener('input', (event) => setMusicVolumeFromSlider(event.target.value));
+
+      retryBtn.addEventListener('click', () => {
+        hideGameOverOverlay();
+        resetGame();
+      });
+
+      menuBtn.addEventListener('click', () => {
+        hideGameOverOverlay();
+        setMenuVisibility(true);
+        resetGame();
+      });
+
+      bgOptions.addEventListener('click', (event) => {
+        const tile = event.target.closest('.option-tile');
+        if (tile && tile.dataset.bg) {
+          setBackground(tile.dataset.bg);
+        }
+      });
+
+      birdOptions.addEventListener('click', (event) => {
+        const tile = event.target.closest('.option-tile');
+        if (tile && tile.dataset.bird) {
+          setBird(tile.dataset.bird);
+        }
+      });
+
+      submitScoreBtn.addEventListener('click', () => submitScoreToLeaderboard());
+      leaderboardRefreshBtn.addEventListener('click', () => refreshLeaderboard(leaderboardDifficultySelect.value));
+      leaderboardDifficultySelect.addEventListener('change', (event) => {
+        refreshLeaderboard(event.target.value);
+        defocusSelect(event.target); // keep Space free for game start, not dropdown toggle
+      });
+      playerNameInput.addEventListener('blur', () => {
+        if (playerNameLocked) {
+          return;
+        }
+        const name = (playerNameInput.value || '').trim();
+        if (name) {
+          localStorage.setItem(NAME_STORAGE_KEY, name.slice(0, 24));
+        } else {
+          localStorage.removeItem(NAME_STORAGE_KEY);
+        }
+        resetPlayerLeaderboardBest();
+        if (firebaseReady || firebaseReadyPromise) {
+          refreshLeaderboard(currentDifficulty, { silentStatus: true });
+        }
+      });
+
+      canvas.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        handleInput();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (isTypingTarget(event.target)) {
+          return;
+        }
+        if (event.code === 'Space' || event.code === 'ArrowUp') {
+          event.preventDefault();
+          handleInput();
+        } else if (event.code === 'KeyP') {
+          event.preventDefault();
+          togglePause();
+        } else if (event.code === 'KeyR') {
+          event.preventDefault();
+          resetGame();
+        }
+      });
+
+      window.addEventListener('blur', () => {
+        togglePause(true);
+      });
+
+      hydratePlayerName();
+      leaderboardDifficultySelect.value = currentDifficulty;
+      setSubmissionStatus('Érj el egy új rekordot a feltöltéshez.');
+      setLeaderboardStatus('Állítsd be a window.HOX_FIREBASE_CONFIG objektumot a ranglistához.', true);
+      initFirebase()
+        .then(() => refreshLeaderboard(currentDifficulty, { silentStatus: true }))
+        .catch(() => {});
+      updateBestDisplay();
+      setBackground(currentBackground);
+      setDifficultySettings(currentDifficulty);
+      setBird(currentBird);
+      setMenuVisibility(menuOpen);
+      setGameVolumeFromSlider(gameVolumeSlider.value);
+      setMusicVolumeFromSlider(musicVolumeSlider.value);
+      setMusicEnabled(false);
+      seedSky();
+      advanceSkyTheme(0);
+      updateScoreIcons();
+      drawStaticScene();
+    })();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
