@@ -376,7 +376,8 @@
       backdrop-filter: blur(6px);
       z-index: 10;
       padding: clamp(8px, 3vh, 18px);
-      overflow: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
 
     .menu-card {
@@ -920,6 +921,9 @@
 
     .bg-thumb-custom4 {
       background-image: url('assets/custom4.png');
+    }
+    .bg-thumb-custom5 {
+      background-image: url('assets/custom5.png');
     }
 
     .bird-thumb-1 {
@@ -1601,10 +1605,14 @@
         </div>
         <div class="option-tile" data-bg="custom3">
           <div class="tile-preview preview-bg bg-thumb-custom3" aria-hidden="true"></div>
-          <span class="option-label">Benidorm</span>
+          <span class="option-label">Homályos kacsák</span>
         </div>
         <div class="option-tile" data-bg="custom4">
           <div class="tile-preview preview-bg bg-thumb-custom4" aria-hidden="true"></div>
+          <span class="option-label">Benidorm</span>
+        </div>
+        <div class="option-tile" data-bg="custom5">
+          <div class="tile-preview preview-bg bg-thumb-custom5" aria-hidden="true"></div>
           <span class="option-label">Ámerika</span>
         </div>
       </div>
@@ -1803,6 +1811,7 @@
         custom2: { image: new Image(), ready: false, src: 'assets/custom2.png' },
         custom3: { image: new Image(), ready: false, src: 'assets/custom3.png' },
         custom4: { image: new Image(), ready: false, src: 'assets/custom4.png' },
+        custom5: { image: new Image(), ready: false, src: 'assets/custom5.png' },
       };
       const collectSoundFolder = 'assets/sfx/collect/';
       const baseCollectVolume = 0.65;
@@ -3339,6 +3348,7 @@
       function setMenuVisibility(open) {
         menuOpen = open;
         menuOverlay.style.display = open ? 'flex' : 'none';
+        document.body.style.overflow = open ? 'hidden' : '';
         if (!open && statsPanelOpen) {
           setStatsPanelVisible(false);
         }
