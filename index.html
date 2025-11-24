@@ -1396,6 +1396,34 @@
       }
     }
 
+    /* Mobile optimizations */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px 8px;
+      }
+      .game-wrapper {
+        padding: 14px;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+      .tagline,
+      .family-note {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+      }
+      canvas {
+        max-height: 72vh;
+        border-width: 1px;
+      }
+      .controls {
+        font-size: 0.86rem;
+      }
+      .leaderboard-card {
+        padding: 12px;
+      }
+    }
+
     @keyframes ambientDrift {
       0% {
         transform: translate3d(0, 0, 0) scale(1);
@@ -1643,7 +1671,7 @@
         <div class="menu-meta" aria-label="Credits">
           <span class="label"></span>
           <span class="name">Patrik550</span>
-          <span class="version">V1.3</span>
+          <span class="version">V1.3.1</span>
         </div>
         <button id="statsBtn" type="button" class="stats-btn">Statisztikák</button>
       </div>
