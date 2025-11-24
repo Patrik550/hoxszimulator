@@ -387,7 +387,7 @@
       box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(148, 163, 184, 0.15);
       padding: 18px 18px 28px;
       border-radius: 18px;
-      width: min(520px, 92vw);
+      width: min(540px, 96vw);
       max-width: 820px;
       max-height: none;
       overflow: hidden;
@@ -424,9 +424,9 @@
         align-items: flex-start;
       }
       .menu-card {
-        padding: 16px 14px 72px;
-        width: 100%;
-        max-height: calc(100vh - 18px);
+        padding: 14px 12px 64px;
+        width: min(540px, 96vw);
+        max-height: calc(100vh - 16px);
       }
       .menu-grid {
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -1671,7 +1671,7 @@
         <div class="menu-meta" aria-label="Credits">
           <span class="label"></span>
           <span class="name">Patrik550</span>
-          <span class="version">V1.3.1</span>
+          <span class="version">V1.3.2</span>
         </div>
         <button id="statsBtn" type="button" class="stats-btn">Statisztikák</button>
       </div>
@@ -3602,10 +3602,11 @@
         }
         menuCard.style.transformOrigin = 'top center';
         menuCard.style.transform = '';
-        const margin = Math.max(8, Math.floor(window.innerHeight * 0.02));
+        const margin = Math.max(6, Math.floor(window.innerHeight * 0.02));
         const availableH = Math.max(320, window.innerHeight - margin * 2);
         const rect = menuCard.getBoundingClientRect();
-        const minScale = 0.55;
+        const isSmallScreen = window.innerWidth <= 640;
+        const minScale = isSmallScreen ? 0.7 : 0.55;
         const rawScale = availableH / rect.height;
         const scale = Math.min(1, Math.max(minScale, rawScale));
         menuCard.style.transform = `scale(${scale})`;
