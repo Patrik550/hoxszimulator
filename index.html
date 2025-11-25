@@ -4240,11 +4240,11 @@
           return;
         }
         const { hx, hy } = getHitbox();
-        const pickupPadding = 6;
         for (let i = collectibles.length - 1; i >= 0; i -= 1) {
           const item = collectibles[i];
-          const hxExp = Math.max(4, hx + item.radius - pickupPadding);
-          const hyExp = Math.max(4, hy + item.radius - pickupPadding);
+          const pickupPadding = 3; // small padding to keep pickups generous but aligned to visuals
+          const hxExp = Math.max(6, hx + item.radius - pickupPadding);
+          const hyExp = Math.max(6, hy + item.radius - pickupPadding);
           const dx = (bird.x - item.x) / hxExp;
           const dy = (bird.y - item.y) / hyExp;
           if (dx * dx + dy * dy <= 1) {
