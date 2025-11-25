@@ -1809,7 +1809,7 @@
         <div class="menu-meta" aria-label="Credits">
           <span class="label"></span>
           <span class="name">Patrik550</span>
-          <span class="version">V1.7</span>
+          <span class="version">V1.8</span>
         </div>
         <button id="statsBtn" type="button" class="stats-btn">Statisztikák</button>
       </div>
@@ -2220,12 +2220,14 @@
         maxRiseSpeed: -9.4,
       };
       const difficultyRamp = {
-        maxGapTighten: 18,
-        maxSpeedBoost: 0.7,
-        maxSpawnReduction: 260,
-        maxGravityBoost: 0.03,
+        maxGapTighten: 14,
+        maxSpeedBoost: 0.55,
+        maxSpawnReduction: 220,
+        maxGravityBoost: 0.022,
         scoreForMax: 55,
         minSpawnInterval: 1100,
+        timeForMaxMs: 90000, // gentler ramp: ~90s to reach base max via time
+        pipesForMax: 36, // gentler ramp: ~36 pipes to reach base max via pipes
       };
       const pipeTopSmoothing = { maxDelta: 120, ease: 0.6 };
       const inputBufferMs = 140;
@@ -2573,6 +2575,8 @@
       const collectibles = [];
       const pickupMarkers = [];
       let score = 0;
+      let runTimeMs = 0;
+      let pipesPassed = 0;
       let groundOffset = 0;
       let collectibleMisses = 0;
       let lastPipeTop = null;
@@ -3925,29 +3929,34 @@
 
       function applyDifficultyRamp() {
         const preset = runBaseSettings;
-        const progress = Math.min(score / difficultyRamp.scoreForMax, 1);
-        const eased = Math.pow(progress, 1.1);
+        // Combine score/time/pipes gently; keep creeping harder the longer you survive.
+        const progressFromScore = score / difficultyRamp.scoreForMax;
+        const progressFromTime = runTimeMs / difficultyRamp.timeForMaxMs;
+        const progressFromPipes = pipesPassed / difficultyRamp.pipesForMax;
+        const blended = (progressFromScore + progressFromTime + progressFromPipes) / 3;
+        const eased = 1 - Math.exp(-blended * 0.8); // gentle early ramp
+        const rampStretch = 1 + Math.max(0, blended - 1) * 0.35; // keeps climbing on long runs
         const warmup = Math.max(0, 1 - score / 8); // friendlier first few points
 
-        const gapTighten = difficultyRamp.maxGapTighten * eased;
+        const gapTighten = difficultyRamp.maxGapTighten * eased * rampStretch;
         const warmupGap = warmup * 10;
         const targetGap = Math.max(minPipeGap, preset.pipeGap - gapTighten + warmupGap);
 
-        const speedBoost = difficultyRamp.maxSpeedBoost * eased;
+        const speedBoost = difficultyRamp.maxSpeedBoost * eased * rampStretch;
         const warmupSpeedPenalty = warmup * 0.12;
         const targetSpeed = Math.max(preset.pipeSpeed * 0.92, preset.pipeSpeed + speedBoost - warmupSpeedPenalty);
 
-        const spawnReduction = difficultyRamp.maxSpawnReduction * eased;
+        const spawnReduction = difficultyRamp.maxSpawnReduction * eased * rampStretch;
         const warmupSpawnBonus = warmup * 120;
         const targetSpawn = Math.max(
           difficultyRamp.minSpawnInterval,
           preset.spawnInterval - spawnReduction + warmupSpawnBonus
         );
 
-        const gravityBoost = difficultyRamp.maxGravityBoost * eased;
+        const gravityBoost = difficultyRamp.maxGravityBoost * eased * rampStretch;
         const targetGravity = preset.gravity + gravityBoost;
 
-        const smoothFactor = 0.08;
+        const smoothFactor = 0.06; // slower convergence for gentler feel
         rampedSettings.pipeGap += (targetGap - rampedSettings.pipeGap) * smoothFactor;
         rampedSettings.pipeSpeed += (targetSpeed - rampedSettings.pipeSpeed) * smoothFactor;
         rampedSettings.spawnInterval += (targetSpawn - rampedSettings.spawnInterval) * smoothFactor;
@@ -4026,6 +4035,8 @@
         pickupMarkers.length = 0;
         groundOffset = 0;
         score = 0;
+        runTimeMs = 0;
+        pipesPassed = 0;
         recordScoreGuard(score);
         bestBeforeRun[currentDifficulty] = bestScores[currentDifficulty] ?? 0;
         state.running = false;
@@ -4190,6 +4201,7 @@
         if (state.paused) {
           return;
         }
+        runTimeMs += deltaMs;
         applyDifficultyRamp();
         groundOffset = (groundOffset + settings.pipeSpeed * deltaFactor) % (settings.pipeWidth + 12);
 
@@ -4210,6 +4222,7 @@
         });
 
         while (pipes.length && pipes[0].x + settings.pipeWidth < 0) {
+          pipesPassed += 1; // track cleared pipes for difficulty ramping
           pipes.shift();
         }
 
