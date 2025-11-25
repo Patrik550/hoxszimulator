@@ -3290,7 +3290,7 @@
             .doc(diff)
             .collection('entries')
             .orderBy('score', 'desc')
-            .limit(10)
+            .limit(25)
             .get();
           const entries = [];
           snapshot.forEach((doc) => {
