@@ -1809,7 +1809,7 @@
         <div class="menu-meta" aria-label="Credits">
           <span class="label"></span>
           <span class="name">Patrik550</span>
-          <span class="version">V1.6</span>
+          <span class="version">V1.7</span>
         </div>
         <button id="statsBtn" type="button" class="stats-btn">Statisztikák</button>
       </div>
@@ -3995,6 +3995,14 @@
         const availableH = Math.max(320, window.innerHeight - margin * 2);
         const rect = menuCard.getBoundingClientRect();
         const isSmallScreen = window.innerWidth <= 640;
+        if (isSmallScreen) {
+          // On mobile, prefer scrolling instead of scaling to keep the start button reachable.
+          menuCard.style.maxHeight = `${availableH}px`;
+          menuCard.style.overflow = 'auto';
+          menuOverlay.style.overflowY = 'auto';
+          menuOverlay.style.alignItems = 'flex-start';
+          return;
+        }
         const minScale = isSmallScreen ? 0.7 : 0.55;
         const rawScale = availableH / rect.height;
         const scale = Math.min(1, Math.max(minScale, rawScale));
