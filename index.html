@@ -144,6 +144,7 @@
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(14, 165, 233, 0.45));
       border: 1px solid rgba(56, 189, 248, 0.65);
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+      outline: 2px solid rgba(255, 255, 255, 0.08);
     }
 
     .dislike-number {
@@ -155,6 +156,7 @@
       min-width: 2.6ch;
       text-align: right;
       display: inline-block;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
     }
 
     .dislike-img {
@@ -1127,11 +1129,74 @@
       color: #e2e8f0;
     }
 
-    .slider-row input[type="range"] {
-      accent-color: #22c55e;
-      width: min(220px, 100%);
-    }
+.slider-row input[type="range"] {
+  accent-color: #22c55e;
+  width: min(220px, 100%);
+}
 
+.toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.toggle-hint {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: #cbd5f5;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch .slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.switch .slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  top: 4px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 50%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 6px 12px rgba(22, 163, 74, 0.3);
+}
+
+.switch input:checked + .slider {
+  background: rgba(34, 197, 94, 0.4);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(20px);
+  box-shadow: 0 6px 12px rgba(34, 197, 94, 0.35);
+}
+
+.switch input:focus-visible + .slider {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
     .leaderboard-card {
       position: relative;
       border: 1px solid rgba(56, 189, 248, 0.35);
@@ -1523,6 +1588,15 @@
           <div class="best-pill best-pill-hard">Evelin: <span id="bestHard">0</span></div>
         </div>
       </div>
+      <div class="slider-row" style="justify-content:flex-start;">
+        <label for="hitboxToggle" class="toggle-label">
+          <span class="toggle-title">Hitbox láthatósági réteg</span>
+        </label>
+        <label class="switch">
+          <input id="hitboxToggle" type="checkbox" aria-label="Hitbox láthatósági réteg bekapcsolása" />
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
     <div class="canvas-shell">
       <canvas id="gameCanvas" width="440" height="620" role="img" aria-label="Hox szimulátor map"></canvas>
@@ -1718,16 +1792,21 @@
           <span class="option-label">Retard skizo</span>
         </div>
       </div>
-      <div class="slider-row" style="margin-top:6px; background:rgba(8,47,73,0.5);">
-        <label for="musicToggle">Háttérzene</label>
-        <input id="musicToggle" type="checkbox" aria-label="Háttérzene kapcsoló" />
+      <div class="slider-row" style="margin-top:6px; background:rgba(8,47,73,0.5); justify-content:space-between;">
+        <label for="musicToggle" class="toggle-label">
+          <span class="toggle-title">Háttérzene</span>
+        </label>
+        <label class="switch">
+          <input id="musicToggle" type="checkbox" aria-label="Háttérzene kapcsoló" />
+          <span class="slider"></span>
+        </label>
       </div>
       <button class="start-btn" id="startBtn">Játék indítása</button>
       <div class="menu-footer">
         <div class="menu-meta" aria-label="Credits">
           <span class="label"></span>
           <span class="name">Patrik550</span>
-          <span class="version">V1.5</span>
+          <span class="version">V1.6</span>
         </div>
         <button id="statsBtn" type="button" class="stats-btn">Statisztikák</button>
       </div>
@@ -1798,6 +1877,7 @@
       const statsStatusEl = document.getElementById('statsStatus');
       const communityStatsList = document.getElementById('communityStatsList');
       const personalStatsList = document.getElementById('personalStatsList');
+      const hitboxToggle = document.getElementById('hitboxToggle');
       const backgroundLabels = buildOptionLabelMap(bgOptions, 'bg');
       const backgroundOrder = buildOptionOrder(bgOptions, 'bg');
       const birdLabels = buildOptionLabelMap(birdOptions, 'bird');
@@ -1837,6 +1917,13 @@
         'collect17.mp3',
         'collect18.mp3',
         'collect19.mp3',
+        'collect20.mp3',
+        'collect21.mp3',
+        'collect22.mp3',
+        'collect23.mp3',
+        'collect24.mp3',
+        'collect25.mp3',
+        'collect26.mp3',
 
       ];
       const collectSounds = collectSoundFiles.map((file) => makeAudio(`${collectSoundFolder}${file}`, baseCollectVolume));
@@ -1883,6 +1970,9 @@
       let musicEnabled = false;
       let gameVolume = 1;
       let musicVolume = baseMusicVolume;
+      let hitboxDebug = false;
+      let queuedFlap = false;
+      let queuedFlapUntil = 0;
 
       const STORAGE_KEY = 'hox-dislikes-best-by-difficulty-v1';
       const stars = [];
@@ -2101,6 +2191,9 @@
       let themeIndex = Math.floor(Math.random() * skyThemes.length);
       let nextThemeIndex = pickRandomThemeIndex(themeIndex);
       let skyPulse = 0;
+      const themeTickMs = 80;
+      let themeTickAccumulator = themeTickMs; // force an initial blend on first call
+      let lastThemeRetintSignature = '';
       let currentThemeState = null;
       const minStars = 45;
       const maxStarsCap = 90;
@@ -2132,6 +2225,10 @@
         minSpawnInterval: 1100,
       };
       const pipeTopSmoothing = { maxDelta: 120, ease: 0.6 };
+      const inputBufferMs = 140;
+      const fixedDeltaMs = 1000 / 60;
+      const maxFrameDeltaMs = 250;
+      const maxUpdateSteps = 20;
 
       let currentDifficulty = difficultySelect.value;
       let bestScores = { easy: 0, normal: 0, hard: 0 };
@@ -2152,9 +2249,31 @@
       let statsPanelOpen = false;
       let personalTotals = { games: 0, collected: 0, playTimeMs: 0 };
       let deathShakeInFlight = false;
+      let resizeTimer = null;
+      const pipeGradientCache = { width: 0, body: null, highlight: null };
+      const groundGradientCache = { width: 0, height: 0, groundHeight: 0, ground: null, stripe: null };
+      const audioPool = new Map();
+      const backgroundTickMs = 32;
+      let backgroundTickAccumulator = 0;
+      let lastDeltaMs = 16;
+      let rafId = null;
+      let idleFrameDrawn = false;
+      let accumulatorMs = 0;
+      let simulatedMsSinceBgTick = 0;
 
       const clamp01 = (value) => Math.max(0, Math.min(1, value));
       const lerp = (a, b, t) => a + (b - a) * t;
+
+      function makeRng(seed) {
+        let a = seed >>> 0;
+        return () => {
+          a += 0x6d2b79f5;
+          let t = a;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
 
       function pickRandomThemeIndex(excludeIndex = -1) {
         if (skyThemes.length <= 1) {
@@ -2194,6 +2313,91 @@
       function rgbToString(rgb) {
         const [r, g, b] = rgb;
         return `${r}, ${g}, ${b}`;
+      }
+
+      function isBackgroundReady(choice = currentBackground) {
+        if (choice === 'animated') {
+          return true;
+        }
+        const entry = backgroundImages[choice];
+        return Boolean(entry && entry.ready);
+      }
+
+      function isBirdReady() {
+        return Boolean(birdReady.base);
+      }
+
+      function updateAssetReadyState() {
+        const ready = isBirdReady() && isBackgroundReady();
+        if (startBtn) {
+          startBtn.disabled = !ready;
+          startBtn.textContent = ready ? 'Játék indítása' : 'Betöltés...';
+        }
+        return ready;
+      }
+
+      function getPipeGradients() {
+        if (
+          pipeGradientCache.width === settings.pipeWidth &&
+          pipeGradientCache.body &&
+          pipeGradientCache.highlight &&
+          pipeGradientCache.fillRow
+        ) {
+          return pipeGradientCache;
+        }
+        const body = ctx.createLinearGradient(0, 0, settings.pipeWidth, 0);
+        body.addColorStop(0, '#0b7a5d');
+        body.addColorStop(0.45, '#10b981');
+        body.addColorStop(0.55, '#0ea371');
+        body.addColorStop(1, '#0b7a5d');
+
+        const highlight = ctx.createLinearGradient(0, 0, settings.pipeWidth, 0);
+        highlight.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
+        highlight.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
+        highlight.addColorStop(1, 'rgba(0, 0, 0, 0.12)');
+
+        const fillRow = document.createElement('canvas');
+        fillRow.width = settings.pipeWidth;
+        fillRow.height = 1;
+        const fillCtx = fillRow.getContext('2d');
+        fillCtx.fillStyle = body;
+        fillCtx.fillRect(0, 0, settings.pipeWidth, 1);
+        fillCtx.fillStyle = highlight;
+        fillCtx.fillRect(0, 0, settings.pipeWidth, 1);
+
+        pipeGradientCache.width = settings.pipeWidth;
+        pipeGradientCache.body = body;
+        pipeGradientCache.highlight = highlight;
+        pipeGradientCache.fillRow = fillRow;
+        return pipeGradientCache;
+      }
+
+      function ensureGroundGradients() {
+        if (
+          groundGradientCache.width === canvas.width &&
+          groundGradientCache.height === canvas.height &&
+          groundGradientCache.groundHeight === settings.groundHeight &&
+          groundGradientCache.ground &&
+          groundGradientCache.stripe
+        ) {
+          return groundGradientCache;
+        }
+        const groundY = canvas.height - settings.groundHeight;
+        const groundGradient = ctx.createLinearGradient(0, groundY, 0, canvas.height);
+        groundGradient.addColorStop(0, '#facc15');
+        groundGradient.addColorStop(0.5, '#f59e0b');
+        groundGradient.addColorStop(1, '#d97706');
+
+        const stripeGradient = ctx.createLinearGradient(0, 0, groundStripe.width, groundStripe.height);
+        stripeGradient.addColorStop(0, '#fef9c3');
+        stripeGradient.addColorStop(1, '#fcd34d');
+
+        groundGradientCache.width = canvas.width;
+        groundGradientCache.height = canvas.height;
+        groundGradientCache.groundHeight = settings.groundHeight;
+        groundGradientCache.ground = groundGradient;
+        groundGradientCache.stripe = stripeGradient;
+        return groundGradientCache;
       }
 
       function blendStops(stopsA, stopsB, t) {
@@ -2246,8 +2450,14 @@
       }
 
       function advanceSkyTheme(deltaMs) {
-        themeClock += deltaMs;
         skyPulse += deltaMs;
+        themeTickAccumulator += deltaMs;
+        if (themeTickAccumulator < themeTickMs) {
+          return;
+        }
+        const applied = themeTickAccumulator;
+        themeTickAccumulator = 0;
+        themeClock += applied;
         const cycleLength = themeHoldMs + themeFadeMs;
         if (themeClock >= cycleLength) {
           themeClock = 0;
@@ -2258,7 +2468,11 @@
         const rawBlend = (themeClock - fadeStart) / themeFadeMs;
         themeBlend = easeInOutSine(clamp01(rawBlend));
         currentThemeState = getBlendedTheme();
-        retintStars(currentThemeState);
+        const retintSignature = `${themeIndex}-${nextThemeIndex}-${Math.round(themeBlend * 1000)}`;
+        if (retintSignature !== lastThemeRetintSignature) {
+          retintStars(currentThemeState);
+          lastThemeRetintSignature = retintSignature;
+        }
       }
 
       function normalizeName(name) {
@@ -2319,6 +2533,7 @@
 
       let settings = { ...baseSettings, ...difficultyPresets.normal };
       let runBaseSettings = { ...settings };
+      let rampedSettings = { ...settings };
       let minPipeGap = Math.max(140, difficultyPresets.normal.pipeGap - 10);
 
       const defaultBirdWidth = 70;
@@ -2361,29 +2576,51 @@
       allowedScore: 0,
     };
 
-    const dislikeImage = new Image();
+      const dislikeImage = new Image();
       const dislikeImageSrc = 'assets/dislike.png'; // Replace with your dislike icon
       let dislikeImageReady = false;
       dislikeImage.onload = () => {
         dislikeImageReady = true;
         dislikeIconEl.src = dislikeImageSrc;
         dislikeIconEl.alt = 'Dislike ikon';
+        updateAssetReadyState();
       };
       dislikeImage.onerror = () => {
         dislikeImageReady = false;
         dislikeIconEl.removeAttribute('src');
+        updateAssetReadyState();
       };
       dislikeImage.src = dislikeImageSrc;
 
-      Object.values(backgroundImages).forEach((entry) => {
+      function ensureBackgroundLoaded(key) {
+        const entry = backgroundImages[key];
+        if (!entry || entry.ready || entry.loading) {
+          return;
+        }
+        entry.loading = true;
         entry.image.onload = () => {
-          entry.ready = true;
+          const finalize = () => {
+            entry.ready = true;
+            entry.loading = false;
+            updateAssetReadyState();
+          };
+          if (entry.image.decode) {
+            entry.image.decode().then(finalize).catch(finalize);
+          } else {
+            finalize();
+          }
         };
         entry.image.onerror = () => {
           entry.ready = false;
+          entry.failed = true;
+          entry.loading = false;
+          if (currentBackground === key) {
+            setBackground('animated');
+          }
+          updateAssetReadyState();
         };
         entry.image.src = entry.src;
-      });
+      }
 
       function setSubmissionStatus(message, isError = false) {
         if (!submissionStatusEl) {
@@ -3160,12 +3397,44 @@
         return audio;
       }
 
-      function playAudioInstance(baseAudio) {
+      function releaseAudioInstance(instance) {
+        if (!instance) {
+          return;
+        }
+        instance.pause();
+        instance.currentTime = 0;
+        instance.onended = null;
+        const key = instance.src;
+        const pool = audioPool.get(key) || [];
+        pool.push(instance);
+        audioPool.set(key, pool);
+      }
+
+      function borrowAudioInstance(baseAudio) {
         if (!baseAudio) {
           return null;
         }
-        const instance = baseAudio.cloneNode(true);
+        const key = baseAudio.src;
+        const pool = audioPool.get(key) || [];
+        const instance = pool.pop() || baseAudio.cloneNode(true);
         instance.volume = baseAudio.volume;
+        instance.onended = null;
+        audioPool.set(key, pool);
+        return instance;
+      }
+
+      function playAudioInstance(baseAudio, onEnded) {
+        const instance = borrowAudioInstance(baseAudio);
+        if (!instance) {
+          return null;
+        }
+        instance.currentTime = 0;
+        instance.onended = () => {
+          if (onEnded) {
+            onEnded();
+          }
+          releaseAudioInstance(instance);
+        };
         instance.play().catch(() => {});
         return instance;
       }
@@ -3177,44 +3446,40 @@
         const ready = collectSounds.filter((audio) => audio.readyState >= 2);
         const pool = ready.length ? ready : collectSounds;
         const choice = pool[Math.floor(Math.random() * pool.length)];
-        const instance = playAudioInstance(choice);
+        const instance = playAudioInstance(choice, () => {
+          if (activeCollectSound === instance) {
+            activeCollectSound = null;
+            stopTalkingAnimation();
+          }
+        });
         if (instance) {
           activeCollectSound = instance;
           startTalkingAnimation();
-          instance.onended = () => {
-            if (activeCollectSound === instance) {
-              activeCollectSound = null;
-              stopTalkingAnimation();
-            }
-          };
         }
       }
 
       function playDeathSound() {
         stopDeathSound();
-        const instance = playAudioInstance(deathSound);
+        const instance = playAudioInstance(deathSound, () => {
+          if (activeDeathSound === instance) {
+            activeDeathSound = null;
+          }
+        });
         if (instance) {
           activeDeathSound = instance;
-          instance.onended = () => {
-            if (activeDeathSound === instance) {
-              activeDeathSound = null;
-            }
-          };
         }
       }
 
       function stopDeathSound() {
         if (activeDeathSound) {
-          activeDeathSound.pause();
-          activeDeathSound.currentTime = 0;
+          releaseAudioInstance(activeDeathSound);
           activeDeathSound = null;
         }
       }
 
       function stopCollectSound() {
         if (activeCollectSound) {
-          activeCollectSound.pause();
-          activeCollectSound.currentTime = 0;
+          releaseAudioInstance(activeCollectSound);
           activeCollectSound = null;
         }
         stopTalkingAnimation();
@@ -3295,17 +3560,29 @@
         }
         const img = birdImages[key];
         img.onload = () => {
-          birdReady[key] = true;
-          if (
-            resizeOnLoad ||
-            (key === 'base' && !birdReady.talk) ||
-            (!birdReady.base && key === 'talk')
-          ) {
-            sizeBirdFromImage(img);
+          const finalize = () => {
+            birdReady[key] = true;
+            if (
+              resizeOnLoad ||
+              (key === 'base' && !birdReady.talk) ||
+              (!birdReady.base && key === 'talk')
+            ) {
+              sizeBirdFromImage(img);
+            }
+            updateAssetReadyState();
+          };
+          if (img.decode) {
+            img
+              .decode()
+              .then(finalize)
+              .catch(finalize);
+          } else {
+            finalize();
           }
         };
         img.onerror = () => {
           birdReady[key] = false;
+          updateAssetReadyState();
         };
         img.src = src;
       }
@@ -3353,6 +3630,8 @@
           setStatsPanelVisible(false);
         }
         if (open) {
+          stopCollectSound();
+          stopDeathSound();
           fitMenuCardToViewport();
         } else {
           menuCard.style.transform = '';
@@ -3614,23 +3893,44 @@
         const preset = difficultyPresets[name] || difficultyPresets.normal;
         settings = { ...baseSettings, ...preset };
         runBaseSettings = { ...settings };
+        rampedSettings = { ...settings };
         minPipeGap = Math.max(120, preset.pipeGap - 30);
       }
 
       function applyDifficultyRamp() {
         const preset = runBaseSettings;
         const progress = Math.min(score / difficultyRamp.scoreForMax, 1);
-        const gapTighten = difficultyRamp.maxGapTighten * progress;
-        settings.pipeGap = Math.max(minPipeGap, preset.pipeGap - gapTighten);
+        const eased = Math.pow(progress, 1.1);
+        const warmup = Math.max(0, 1 - score / 8); // friendlier first few points
 
-        const speedBoost = difficultyRamp.maxSpeedBoost * progress;
-        settings.pipeSpeed = preset.pipeSpeed + speedBoost;
+        const gapTighten = difficultyRamp.maxGapTighten * eased;
+        const warmupGap = warmup * 10;
+        const targetGap = Math.max(minPipeGap, preset.pipeGap - gapTighten + warmupGap);
 
-        const spawnReduction = difficultyRamp.maxSpawnReduction * progress;
-        settings.spawnInterval = Math.max(difficultyRamp.minSpawnInterval, preset.spawnInterval - spawnReduction);
+        const speedBoost = difficultyRamp.maxSpeedBoost * eased;
+        const warmupSpeedPenalty = warmup * 0.12;
+        const targetSpeed = Math.max(preset.pipeSpeed * 0.92, preset.pipeSpeed + speedBoost - warmupSpeedPenalty);
 
-        const gravityBoost = difficultyRamp.maxGravityBoost * progress;
-        settings.gravity = preset.gravity + gravityBoost;
+        const spawnReduction = difficultyRamp.maxSpawnReduction * eased;
+        const warmupSpawnBonus = warmup * 120;
+        const targetSpawn = Math.max(
+          difficultyRamp.minSpawnInterval,
+          preset.spawnInterval - spawnReduction + warmupSpawnBonus
+        );
+
+        const gravityBoost = difficultyRamp.maxGravityBoost * eased;
+        const targetGravity = preset.gravity + gravityBoost;
+
+        const smoothFactor = 0.08;
+        rampedSettings.pipeGap += (targetGap - rampedSettings.pipeGap) * smoothFactor;
+        rampedSettings.pipeSpeed += (targetSpeed - rampedSettings.pipeSpeed) * smoothFactor;
+        rampedSettings.spawnInterval += (targetSpawn - rampedSettings.spawnInterval) * smoothFactor;
+        rampedSettings.gravity += (targetGravity - rampedSettings.gravity) * smoothFactor;
+
+        settings.pipeGap = rampedSettings.pipeGap;
+        settings.pipeSpeed = rampedSettings.pipeSpeed;
+        settings.spawnInterval = rampedSettings.spawnInterval;
+        settings.gravity = rampedSettings.gravity;
       }
 
       function setBackground(choice) {
@@ -3638,6 +3938,8 @@
         bgOptions.querySelectorAll('.option-tile').forEach((el) => {
           el.classList.toggle('selected', el.dataset.bg === choice);
         });
+        ensureBackgroundLoaded(choice);
+        updateAssetReadyState();
       }
 
       function setBird(choice) {
@@ -3646,6 +3948,7 @@
           el.classList.toggle('selected', el.dataset.bird === choice);
         });
         loadBirdSprites(choice);
+        updateAssetReadyState();
       }
 
       function defocusSelect(el) {
@@ -3692,6 +3995,14 @@
         state.running = false;
         state.gameOver = false;
         state.paused = false;
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        idleFrameDrawn = false;
+        backgroundTickAccumulator = 0;
+        accumulatorMs = 0;
+        simulatedMsSinceBgTick = 0;
         state.pipeTimer = 0;
         state.lastTime = 0;
         state.shake = 0;
@@ -3699,12 +4010,55 @@
         state.startTime = 0;
         collectibleMisses = 0;
         lastPipeTop = null;
+        rampedSettings = { ...settings };
         updateScoreIcons();
         setSubmissionStatus('Futtass egy új rekordot a feltöltéshez.');
         setSubmitButtonLabel('Feltöltés a ranglistára');
         submitScoreBtn.disabled = false;
         drawStaticScene();
         hideGameOverOverlay();
+      }
+
+      function withDeterministicRng(seed, fn) {
+        const originalRandom = Math.random;
+        const rng = makeRng(seed >>> 0 || 1);
+        Math.random = rng;
+        try {
+          return fn();
+        } finally {
+          Math.random = originalRandom;
+        }
+      }
+
+      function runHeadlessSimulation({ seed = 1, frames = 480, difficulty = currentDifficulty } = {}) {
+        return withDeterministicRng(seed, () => {
+          resetGame();
+          applyDifficulty(difficulty);
+          state.running = true;
+          state.paused = false;
+          state.startTime = performance.now();
+          state.lastTime = state.startTime;
+          accumulatorMs = 0;
+          let steps = 0;
+          const deltaFactor = Math.min(fixedDeltaMs / 16.666, 2);
+          for (let i = 0; i < frames; i += 1) {
+            update(fixedDeltaMs, deltaFactor);
+            steps += 1;
+            if (state.gameOver) {
+              break;
+            }
+          }
+          const summary = {
+            framesSimulated: steps,
+            score,
+            pipes: pipes.length,
+            collectibles: collectibles.length,
+            difficulty,
+            gameOver: state.gameOver,
+          };
+          resetGame();
+          return summary;
+        });
       }
 
       function pickPipeTop() {
@@ -3727,6 +4081,7 @@
         pipes.push({
           x: canvas.width + settings.pipeWidth,
           top: topHeight,
+          gap: settings.pipeGap,
         });
         spawnCollectible(topHeight);
       }
@@ -3749,10 +4104,13 @@
           collectibleMisses += 1;
           return;
         }
-        const y = Math.random() * gapHeight + gapStart;
+        const gapCenter = (gapStart + gapEnd) / 2;
+        const biasRange = gapHeight * 0.35;
+        const y = clamp01(Math.random()) * biasRange * 2 + (gapCenter - biasRange);
+        const clampedY = Math.min(gapEnd - radius, Math.max(gapStart + radius, y));
         collectibles.push({
           x: canvas.width + settings.pipeWidth + 30,
-          y,
+          y: clampedY,
           radius,
         });
       }
@@ -3779,11 +4137,19 @@
         }
       }
 
+
       function update(deltaMs, deltaFactor) {
         if (currentBackground === 'animated') {
           advanceSkyTheme(deltaMs);
         } else {
           skyPulse += deltaMs;
+        }
+        const now = performance.now();
+        if (queuedFlap && now <= queuedFlapUntil && !state.paused && !state.gameOver) {
+          flap();
+          queuedFlap = false;
+        } else if (queuedFlap && now > queuedFlapUntil) {
+          queuedFlap = false;
         }
         if (state.paused) {
           return;
@@ -3828,12 +4194,13 @@
       }
 
       function constrainBird() {
-        if (bird.y - bird.height / 2 < 0) {
-          bird.y = bird.height / 2;
+        const { hy } = getHitbox();
+        if (bird.y - hy < 0) {
+          bird.y = hy;
           bird.velocity = 0;
         }
         const groundY = canvas.height - settings.groundHeight;
-        if (bird.y + bird.height / 2 > groundY) {
+        if (bird.y + hy > groundY) {
           endGame('ground');
         }
       }
@@ -3843,20 +4210,27 @@
         if (graceActive) {
           return;
         }
-        const padX = Math.max(6, bird.width * collisionShrink);
-        const padY = Math.max(6, bird.height * collisionShrink);
+        const { hx, hy } = getHitbox();
         for (const pipe of pipes) {
-          const gapBottom = pipe.top + settings.pipeGap;
-          const birdLeft = bird.x - bird.width / 2 + padX;
-          const birdRight = bird.x + bird.width / 2 - padX;
-          const birdTop = bird.y - bird.height / 2 + padY;
-          const birdBottom = bird.y + bird.height / 2 - padY;
-
-          if (birdRight > pipe.x && birdLeft < pipe.x + settings.pipeWidth) {
-            if (birdTop < pipe.top || birdBottom > gapBottom) {
-              endGame('pipe');
-              break;
-            }
+          const gapBottom = pipe.top + pipe.gap;
+          if (ellipseIntersectsRect(bird.x, bird.y, hx, hy, pipe.x, 0, settings.pipeWidth, pipe.top)) {
+            endGame('pipe');
+            break;
+          }
+          if (
+            ellipseIntersectsRect(
+              bird.x,
+              bird.y,
+              hx,
+              hy,
+              pipe.x,
+              gapBottom,
+              settings.pipeWidth,
+              canvas.height - settings.groundHeight - gapBottom
+            )
+          ) {
+            endGame('pipe');
+            break;
           }
         }
       }
@@ -3865,19 +4239,15 @@
         if (!collectibles.length) {
           return;
         }
-        const padX = Math.max(6, bird.width * collisionShrink);
-        const padY = Math.max(6, bird.height * collisionShrink);
-        const birdLeft = bird.x - bird.width / 2 + padX;
-        const birdRight = bird.x + bird.width / 2 - padX;
-        const birdTop = bird.y - bird.height / 2 + padY;
-        const birdBottom = bird.y + bird.height / 2 - padY;
+        const { hx, hy } = getHitbox();
+        const pickupPadding = 6;
         for (let i = collectibles.length - 1; i >= 0; i -= 1) {
           const item = collectibles[i];
-          const left = item.x - item.radius;
-          const right = item.x + item.radius;
-          const top = item.y - item.radius;
-          const bottom = item.y + item.radius;
-          if (birdRight > left && birdLeft < right && birdTop < bottom && birdBottom > top) {
+          const hxExp = Math.max(4, hx + item.radius - pickupPadding);
+          const hyExp = Math.max(4, hy + item.radius - pickupPadding);
+          const dx = (bird.x - item.x) / hxExp;
+          const dy = (bird.y - item.y) / hyExp;
+          if (dx * dx + dy * dy <= 1) {
             const { x, y } = item;
             collectibles.splice(i, 1);
             score += baseCollectScore;
@@ -3941,7 +4311,7 @@
         ctx.shadowOffsetY = 0;
       }
 
-      function drawAuroraBands() {
+      function drawAuroraBands(animate = true) {
         if (!auroraBands.length) {
           return;
         }
@@ -3949,7 +4319,9 @@
         ctx.globalCompositeOperation = 'screen';
         const theme = currentThemeState || getBlendedTheme();
         auroraBands.forEach((band, index) => {
-          band.offset += band.speed;
+          if (animate) {
+            band.offset += band.speed;
+          }
           const step = 24;
           const topY = band.baseY + Math.sin(band.offset * 0.35) * 6;
           const path = new Path2D();
@@ -3979,14 +4351,16 @@
         ctx.restore();
       }
 
-      function drawParallaxRidges() {
+      function drawParallaxRidges(animate = true) {
         if (!parallaxRidges.length) {
           return;
         }
         ctx.save();
         const theme = currentThemeState || getBlendedTheme();
         parallaxRidges.forEach((layer, index) => {
-          layer.offset = (layer.offset + layer.speed) % layer.span;
+          if (animate) {
+            layer.offset = (layer.offset + layer.speed) % layer.span;
+          }
           const palette =
             layer.tone === 'near'
               ? theme.ridges.near
@@ -4022,7 +4396,7 @@
           ctx.restore();
         }
 
-      function drawStars() {
+      function drawStars(animate = true) {
         stars.forEach((star) => {
           if (star.type === 'shooting' && star.trail > 0) {
             ctx.save();
@@ -4039,39 +4413,49 @@
             star.trail = Math.max(0, star.trail - 1);
           }
 
-          const nextAlpha = star.alpha + star.twinkleSpeed * star.twinkleDir;
-          star.alpha = Math.max(0.15, Math.min(0.95, nextAlpha));
-          if (star.alpha === 0.15 || star.alpha === 0.95) {
-            star.twinkleDir *= -1;
+          if (animate) {
+            const nextAlpha = star.alpha + star.twinkleSpeed * star.twinkleDir;
+            star.alpha = Math.max(0.15, Math.min(0.95, nextAlpha));
+            if (star.alpha === 0.15 || star.alpha === 0.95) {
+              star.twinkleDir *= -1;
+            }
           }
           const tint = star.tint || '255, 255, 255';
           ctx.fillStyle = `rgba(${tint}, ${0.35 + star.alpha * 0.6})`;
           ctx.fillRect(star.x, star.y, star.size, star.size);
-          star.x -= star.speed;
-
-          const shootingChance = 0.0006;
-          if (star.type !== 'shooting' && Math.random() < shootingChance) {
-            star.type = 'shooting';
-            star.trail = Math.random() * 40 + 20;
-            star.speed += 0.8;
-          }
-
-          if (star.x < -2) {
-            star.x = canvas.width + 2;
-            star.y = Math.random() * canvas.height * 0.5;
-            star.alpha = Math.random() * 0.4 + 0.3;
-            star.trail = 0;
-            star.type = Math.random() > 0.9 ? 'shooting' : 'dot';
+          if (animate) {
+            star.x -= star.speed;
+            const shootingChance = 0.0006;
+            if (star.type !== 'shooting' && Math.random() < shootingChance) {
+              star.type = 'shooting';
+              star.trail = Math.random() * 40 + 20;
+              star.speed += 0.8;
+            }
+            if (star.x < -2) {
+              star.x = canvas.width + 2;
+              star.y = Math.random() * canvas.height * 0.5;
+              star.alpha = Math.random() * 0.4 + 0.3;
+              star.trail = 0;
+              star.type = Math.random() > 0.9 ? 'shooting' : 'dot';
+            }
           }
         });
       }
 
       function drawBackground() {
+        const isHidden = document.hidden;
         if (currentBackground === 'animated') {
           drawGradientSky();
-          drawAuroraBands();
-          drawStars();
-          drawParallaxRidges();
+          if (!menuOpen && !isHidden) {
+            backgroundTickAccumulator += simulatedMsSinceBgTick;
+            const animateBg = backgroundTickAccumulator >= backgroundTickMs;
+            if (animateBg) {
+              backgroundTickAccumulator = 0;
+            }
+            drawAuroraBands(animateBg);
+            drawStars(animateBg);
+            drawParallaxRidges(animateBg);
+          }
         } else {
           const bgEntry = backgroundImages[currentBackground];
           if (bgEntry && bgEntry.ready) {
@@ -4142,54 +4526,63 @@
       }
 
       function drawPipes() {
+        const { body, highlight, fillRow } = getPipeGradients();
         pipes.forEach((pipe) => {
           const lipHeight = 14;
-          const bodyGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + settings.pipeWidth, 0);
-          bodyGradient.addColorStop(0, '#0b7a5d');
-          bodyGradient.addColorStop(0.48, '#10b981');
-          bodyGradient.addColorStop(0.52, '#0ea371');
-          bodyGradient.addColorStop(1, '#0b7a5d');
-
-          const highlight = ctx.createLinearGradient(pipe.x, 0, pipe.x + settings.pipeWidth, 0);
-          highlight.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
-          highlight.addColorStop(0.4, 'rgba(255, 255, 255, 0.06)');
-          highlight.addColorStop(1, 'rgba(0, 0, 0, 0.08)');
-
           const drawPipeSection = (y, height) => {
-            ctx.fillStyle = bodyGradient;
-            ctx.fillRect(pipe.x, y, settings.pipeWidth, height);
-            ctx.fillStyle = highlight;
-            ctx.fillRect(pipe.x, y, settings.pipeWidth, height);
+            ctx.save();
+            ctx.translate(pipe.x, y);
+            if (fillRow) {
+              ctx.drawImage(fillRow, 0, 0, settings.pipeWidth, 1, 0, 0, settings.pipeWidth, height);
+            } else {
+              ctx.fillStyle = body;
+              ctx.fillRect(0, 0, settings.pipeWidth, height);
+              ctx.fillStyle = highlight;
+              ctx.fillRect(0, 0, settings.pipeWidth, height);
+            }
             ctx.strokeStyle = 'rgba(3, 53, 36, 0.55)';
             ctx.lineWidth = 3;
-            ctx.strokeRect(pipe.x + 1.5, y + 1.5, settings.pipeWidth - 3, height - 3);
+            ctx.strokeRect(1.5, 1.5, settings.pipeWidth - 3, height - 3);
+            ctx.restore();
           };
 
           drawPipeSection(0, pipe.top);
+          ctx.save();
+          ctx.translate(pipe.x, pipe.top);
           ctx.fillStyle = '#0c8f6d';
-          ctx.fillRect(pipe.x - 2, pipe.top - lipHeight, settings.pipeWidth + 4, lipHeight);
+          ctx.fillRect(-2, -lipHeight, settings.pipeWidth + 4, lipHeight);
+          ctx.restore();
 
-          const bottomY = pipe.top + settings.pipeGap;
+          const bottomY = pipe.top + pipe.gap;
           const bottomHeight = canvas.height - settings.groundHeight - bottomY;
           drawPipeSection(bottomY, bottomHeight);
+          ctx.save();
+          ctx.translate(pipe.x, bottomY);
           ctx.fillStyle = '#0c8f6d';
-          ctx.fillRect(pipe.x - 2, bottomY, settings.pipeWidth + 4, lipHeight);
+          ctx.fillRect(-2, 0, settings.pipeWidth + 4, lipHeight);
+          ctx.restore();
         });
       }
 
       function drawGround() {
         const groundY = canvas.height - settings.groundHeight;
-        const groundGradient = ctx.createLinearGradient(0, groundY, 0, canvas.height);
-        groundGradient.addColorStop(0, '#facc15');
-        groundGradient.addColorStop(0.5, '#f59e0b');
-        groundGradient.addColorStop(1, '#d97706');
-        ctx.fillStyle = groundGradient;
+        const { ground, stripe } = ensureGroundGradients();
+        ctx.fillStyle = ground;
         ctx.fillRect(0, groundY, canvas.width, settings.groundHeight);
         ctx.fillStyle = 'rgba(180, 83, 9, 0.75)';
         ctx.fillRect(0, groundY, canvas.width, 3);
         ctx.fillStyle = '#fde68a';
+        // subtle shadow band for depth
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+        ctx.fillRect(0, groundY + 4, canvas.width, 4);
+        ctx.fillStyle = '#fde68a';
         for (let i = -groundStripe.step; i < canvas.width + groundStripe.step; i += groundStripe.step) {
-          ctx.fillRect(i - groundOffset, groundY + 6, groundStripe.width, groundStripe.height);
+          const stripeX = i - groundOffset;
+          ctx.save();
+          ctx.translate(stripeX, groundY + 6);
+          ctx.fillStyle = stripe;
+          ctx.fillRect(0, 0, groundStripe.width, groundStripe.height);
+          ctx.restore();
         }
       }
 
@@ -4244,11 +4637,37 @@
         });
       }
 
+
+      function getHitbox() {
+        const padX = Math.max(6, bird.width * collisionShrink);
+        const padY = Math.max(6, bird.height * collisionShrink);
+        return {
+          hx: Math.max(4, bird.width / 2 - padX),
+          hy: Math.max(4, bird.height / 2 - padY),
+        };
+      }
+
+      function ellipseIntersectsRect(cx, cy, hx, hy, rx, ry, rw, rh) {
+        const nearestX = Math.max(rx, Math.min(cx, rx + rw));
+        const nearestY = Math.max(ry, Math.min(cy, ry + rh));
+        const dx = (cx - nearestX) / hx;
+        const dy = (cy - nearestY) / hy;
+        return dx * dx + dy * dy <= 1;
+      }
+
       function drawBird() {
         const angle = Math.max(Math.min(bird.velocity / 10, 0.65), -0.6);
         ctx.save();
         ctx.translate(bird.x, bird.y);
         ctx.rotate(angle);
+        // subtle shadow for depth
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.scale(1.08, 0.72);
+        ctx.beginPath();
+        ctx.ellipse(0, 12, Math.max(8, bird.width * 0.34), Math.max(6, bird.height * 0.18), 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
         const activeImg = birdImages[activeBirdFrame] || birdImages.base;
         if (birdReady[activeBirdFrame]) {
           ctx.drawImage(activeImg, -bird.width / 2, -bird.height / 2, bird.width, bird.height);
@@ -4263,6 +4682,16 @@
           ctx.beginPath();
           ctx.arc(bird.width / 4, 0, 6, 0, Math.PI * 2);
           ctx.fill();
+        }
+        if (hitboxDebug) {
+          const { hx, hy } = getHitbox();
+          ctx.globalAlpha = 0.32;
+          ctx.strokeStyle = 'rgba(14, 165, 233, 0.95)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, hx, hy, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
         }
         ctx.restore();
       }
@@ -4282,13 +4711,23 @@
         bird.velocity = settings.flap;
       }
 
+      function requestFrameIfNeeded() {
+        if (!state.running) {
+          return;
+        }
+        if (rafId !== null) {
+          return;
+        }
+        rafId = requestAnimationFrame(loop);
+      }
+
       function handleInput() {
         if (menuOpen) {
           return;
         }
         if (state.gameOver) {
-          resetGame();
-          return;
+          queuedFlap = false;
+          return; // prevent accidental restart; use buttons instead
         }
         if (state.paused) {
           togglePause(false);
@@ -4298,10 +4737,12 @@
           state.running = true;
           state.startTime = now;
           state.lastTime = now;
+          idleFrameDrawn = false;
           runGuard.startedAt = now;
-          requestAnimationFrame(loop);
+          requestFrameIfNeeded();
         }
-        flap();
+        queuedFlap = true;
+        queuedFlapUntil = performance.now() + inputBufferMs;
       }
 
       function togglePause(explicitPause) {
@@ -4313,19 +4754,55 @@
         } else {
           state.paused = !state.paused;
         }
+        idleFrameDrawn = false;
+        if (!state.paused) {
+          state.lastTime = performance.now();
+          backgroundTickAccumulator = 0;
+          accumulatorMs = 0;
+          simulatedMsSinceBgTick = 0;
+          requestFrameIfNeeded();
+        }
       }
 
       function loop(timestamp) {
         if (!state.running) {
+          rafId = null;
           return;
         }
-        const deltaMs = timestamp - (state.lastTime || timestamp);
+        const pausedOrHidden = state.paused || document.hidden;
+        if (pausedOrHidden) {
+          if (!idleFrameDrawn) {
+            draw();
+            idleFrameDrawn = true;
+          }
+          state.lastTime = timestamp;
+          simulatedMsSinceBgTick = 0;
+          rafId = null;
+          return;
+        }
+        idleFrameDrawn = false;
+        const deltaMsRaw = timestamp - (state.lastTime || timestamp);
+        const deltaMs = Math.min(deltaMsRaw, maxFrameDeltaMs);
         state.lastTime = timestamp;
-        const deltaFactor = Math.min(deltaMs / 16.666, 2);
-        update(deltaMs, deltaFactor);
+        accumulatorMs += deltaMs;
+        lastDeltaMs = deltaMs;
+
+        let steps = 0;
+        while (accumulatorMs >= fixedDeltaMs && steps < maxUpdateSteps) {
+          const deltaFactor = Math.min(fixedDeltaMs / 16.666, 2);
+          update(fixedDeltaMs, deltaFactor);
+          simulatedMsSinceBgTick += fixedDeltaMs;
+          accumulatorMs -= fixedDeltaMs;
+          steps += 1;
+        }
+        // If we hit the step cap, keep leftover time for the next frame instead of dropping it
+        simulatedMsSinceBgTick = 0;
+
         draw();
         if (state.running) {
-          requestAnimationFrame(loop);
+          rafId = requestAnimationFrame(loop);
+        } else {
+          rafId = null;
         }
       }
 
@@ -4490,6 +4967,17 @@
         refreshLeaderboard(event.target.value);
         defocusSelect(event.target); // keep Space free for game start, not dropdown toggle
       });
+
+      // expose minimal regression harness for automated checks
+      window.__HOX_TESTS__ = {
+        runHeadlessSimulation,
+      };
+
+      if (hitboxToggle) {
+        hitboxToggle.addEventListener('change', (event) => {
+          hitboxDebug = event.target.checked;
+        });
+      }
       playerNameInput.addEventListener('blur', () => {
         if (playerNameLocked) {
           return;
@@ -4531,7 +5019,18 @@
       });
       window.addEventListener('resize', () => {
         if (menuOpen) {
-          fitMenuCardToViewport();
+          if (resizeTimer) {
+            clearTimeout(resizeTimer);
+          }
+          resizeTimer = setTimeout(() => {
+            fitMenuCardToViewport();
+          }, 120);
+        }
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          togglePause(true);
+          queuedFlap = false;
         }
       });
       hydratePlayerName();
@@ -4549,6 +5048,7 @@
       setGameVolumeFromSlider(gameVolumeSlider.value);
       setMusicVolumeFromSlider(musicVolumeSlider.value);
       setMusicEnabled(false);
+      updateAssetReadyState();
       seedSky();
       advanceSkyTheme(0);
       updateScoreIcons();
