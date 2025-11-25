@@ -2260,6 +2260,9 @@
       let idleFrameDrawn = false;
       let accumulatorMs = 0;
       let simulatedMsSinceBgTick = 0;
+      let bgCanvas = null;
+      let bgCtx = null;
+      let bgDirty = true;
 
       const clamp01 = (value) => Math.max(0, Math.min(1, value));
       const lerp = (a, b, t) => a + (b - a) * t;
@@ -2313,6 +2316,23 @@
       function rgbToString(rgb) {
         const [r, g, b] = rgb;
         return `${r}, ${g}, ${b}`;
+      }
+
+      function markBackgroundDirty() {
+        bgDirty = true;
+      }
+
+      function ensureBackgroundBuffer() {
+        if (!bgCanvas) {
+          bgCanvas = document.createElement('canvas');
+          bgCtx = bgCanvas.getContext('2d');
+          bgDirty = true;
+        }
+        if (bgCanvas.width !== canvas.width || bgCanvas.height !== canvas.height) {
+          bgCanvas.width = canvas.width;
+          bgCanvas.height = canvas.height;
+          bgDirty = true;
+        }
       }
 
       function isBackgroundReady(choice = currentBackground) {
@@ -2584,6 +2604,7 @@
         dislikeIconEl.src = dislikeImageSrc;
         dislikeIconEl.alt = 'Dislike ikon';
         updateAssetReadyState();
+        markBackgroundDirty();
       };
       dislikeImage.onerror = () => {
         dislikeImageReady = false;
@@ -2603,6 +2624,7 @@
             entry.ready = true;
             entry.loading = false;
             updateAssetReadyState();
+            markBackgroundDirty();
           };
           if (entry.image.decode) {
             entry.image.decode().then(finalize).catch(finalize);
@@ -2618,6 +2640,7 @@
             setBackground('animated');
           }
           updateAssetReadyState();
+          markBackgroundDirty();
         };
         entry.image.src = entry.src;
       }
@@ -3940,6 +3963,7 @@
         });
         ensureBackgroundLoaded(choice);
         updateAssetReadyState();
+        markBackgroundDirty();
       }
 
       function setBird(choice) {
@@ -3949,6 +3973,7 @@
         });
         loadBirdSprites(choice);
         updateAssetReadyState();
+        markBackgroundDirty();
       }
 
       function defocusSelect(el) {
@@ -4311,12 +4336,14 @@
         ctx.shadowOffsetY = 0;
       }
 
-      function drawAuroraBands(animate = true) {
+      function drawAuroraBands(animate = true, targetCtx = ctx) {
         if (!auroraBands.length) {
           return;
         }
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
+        const w = targetCtx.canvas ? targetCtx.canvas.width : canvas.width;
+        const h = targetCtx.canvas ? targetCtx.canvas.height : canvas.height;
+        targetCtx.save();
+        targetCtx.globalCompositeOperation = 'screen';
         const theme = currentThemeState || getBlendedTheme();
         auroraBands.forEach((band, index) => {
           if (animate) {
@@ -4325,37 +4352,38 @@
           const step = 24;
           const topY = band.baseY + Math.sin(band.offset * 0.35) * 6;
           const path = new Path2D();
-          path.moveTo(0, canvas.height);
+          path.moveTo(0, h);
           path.lineTo(0, topY);
-          for (let x = 0; x <= canvas.width + step; x += step) {
+          for (let x = 0; x <= w + step; x += step) {
             const wave = Math.sin((x + band.offset * 90) * (Math.PI * 2 / band.wavelength)) * band.amplitude;
             const wobble = Math.cos((x + band.offset * 65) * 0.01) * band.amplitude * 0.25;
             const y = topY + wave + wobble;
             path.lineTo(x, y);
           }
-          path.lineTo(canvas.width, canvas.height);
+          path.lineTo(w, h);
           path.closePath();
           const palette = index % 2 === 0 ? theme.auroraA : theme.auroraB;
-          const gradient = ctx.createLinearGradient(0, topY - band.thickness, 0, topY + band.thickness * 0.8);
+          const gradient = targetCtx.createLinearGradient(0, topY - band.thickness, 0, topY + band.thickness * 0.8);
           gradient.addColorStop(0, rgbaToString(palette[0]));
           gradient.addColorStop(1, rgbaToString(palette[1]));
           const shimmer = 0.05 * Math.sin(skyPulse * 0.0012 + index);
-          ctx.globalAlpha = 0.68 - index * 0.08 + shimmer;
-          ctx.filter = 'blur(9px)';
-          ctx.fillStyle = gradient;
-          ctx.fill(path);
-          ctx.filter = 'none';
-          ctx.globalAlpha = 0.46 - index * 0.05 + shimmer * 0.6;
-          ctx.fill(path);
+          targetCtx.globalAlpha = 0.68 - index * 0.08 + shimmer;
+          targetCtx.filter = 'blur(9px)';
+          targetCtx.fillStyle = gradient;
+          targetCtx.fill(path);
+          targetCtx.filter = 'none';
+          targetCtx.globalAlpha = 0.46 - index * 0.05 + shimmer * 0.6;
+          targetCtx.fill(path);
         });
-        ctx.restore();
+        targetCtx.restore();
       }
 
-      function drawParallaxRidges(animate = true) {
+      function drawParallaxRidges(animate = true, targetCtx = ctx) {
         if (!parallaxRidges.length) {
           return;
         }
-        ctx.save();
+        targetCtx.save();
+        const h = targetCtx.canvas ? targetCtx.canvas.height : canvas.height;
         const theme = currentThemeState || getBlendedTheme();
         parallaxRidges.forEach((layer, index) => {
           if (animate) {
@@ -4379,37 +4407,39 @@
             const breathing = 0.04 * Math.sin(skyPulse * 0.0008 + index);
             const shift = -layer.offset;
             const path = layer.path;
-            ctx.save();
-            ctx.translate(shift, 0);
-            const gradient = ctx.createLinearGradient(0, layer.baseY - layer.amplitude * 1.4, 0, canvas.height);
+            targetCtx.save();
+            targetCtx.translate(shift, 0);
+            const gradient = targetCtx.createLinearGradient(0, layer.baseY - layer.amplitude * 1.4, 0, h);
             gradient.addColorStop(0, rgbaToString(palette[0]));
             gradient.addColorStop(1, rgbaToString(palette[1]));
-            ctx.fillStyle = gradient;
-            ctx.globalAlpha = 0.92 - index * 0.12 + breathing;
-            ctx.fill(path);
-            ctx.strokeStyle = rgbaToString(stroke);
-            ctx.lineWidth = 1.2;
-            ctx.globalAlpha = 0.78 + breathing * 0.5;
-            ctx.stroke(path);
-            ctx.restore();
+            targetCtx.fillStyle = gradient;
+            targetCtx.globalAlpha = 0.92 - index * 0.12 + breathing;
+            targetCtx.fill(path);
+            targetCtx.strokeStyle = rgbaToString(stroke);
+            targetCtx.lineWidth = 1.2;
+            targetCtx.globalAlpha = 0.78 + breathing * 0.5;
+            targetCtx.stroke(path);
+            targetCtx.restore();
           });
-          ctx.restore();
+          targetCtx.restore();
         }
 
-      function drawStars(animate = true) {
+      function drawStars(animate = true, targetCtx = ctx) {
+        const w = targetCtx.canvas ? targetCtx.canvas.width : canvas.width;
+        const h = targetCtx.canvas ? targetCtx.canvas.height : canvas.height;
         stars.forEach((star) => {
           if (star.type === 'shooting' && star.trail > 0) {
-            ctx.save();
-            const gradient = ctx.createLinearGradient(star.x + star.trail, star.y, star.x, star.y);
+            targetCtx.save();
+            const gradient = targetCtx.createLinearGradient(star.x + star.trail, star.y, star.x, star.y);
             gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
             gradient.addColorStop(1, `rgba(255, 255, 255, ${0.4 * star.alpha})`);
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = Math.max(1, star.size * 1.6);
-            ctx.beginPath();
-            ctx.moveTo(star.x + star.trail, star.y);
-            ctx.lineTo(star.x, star.y);
-            ctx.stroke();
-            ctx.restore();
+            targetCtx.strokeStyle = gradient;
+            targetCtx.lineWidth = Math.max(1, star.size * 1.6);
+            targetCtx.beginPath();
+            targetCtx.moveTo(star.x + star.trail, star.y);
+            targetCtx.lineTo(star.x, star.y);
+            targetCtx.stroke();
+            targetCtx.restore();
             star.trail = Math.max(0, star.trail - 1);
           }
 
@@ -4421,8 +4451,8 @@
             }
           }
           const tint = star.tint || '255, 255, 255';
-          ctx.fillStyle = `rgba(${tint}, ${0.35 + star.alpha * 0.6})`;
-          ctx.fillRect(star.x, star.y, star.size, star.size);
+          targetCtx.fillStyle = `rgba(${tint}, ${0.35 + star.alpha * 0.6})`;
+          targetCtx.fillRect(star.x, star.y, star.size, star.size);
           if (animate) {
             star.x -= star.speed;
             const shootingChance = 0.0006;
@@ -4432,8 +4462,8 @@
               star.speed += 0.8;
             }
             if (star.x < -2) {
-              star.x = canvas.width + 2;
-              star.y = Math.random() * canvas.height * 0.5;
+              star.x = w + 2;
+              star.y = Math.random() * h * 0.5;
               star.alpha = Math.random() * 0.4 + 0.3;
               star.trail = 0;
               star.type = Math.random() > 0.9 ? 'shooting' : 'dot';
@@ -4444,52 +4474,40 @@
 
       function drawBackground() {
         const isHidden = document.hidden;
-        if (currentBackground === 'animated') {
-          drawGradientSky();
-          if (!menuOpen && !isHidden) {
-            backgroundTickAccumulator += simulatedMsSinceBgTick;
-            const animateBg = backgroundTickAccumulator >= backgroundTickMs;
-            if (animateBg) {
-              backgroundTickAccumulator = 0;
-            }
-            drawAuroraBands(animateBg);
-            drawStars(animateBg);
-            drawParallaxRidges(animateBg);
+        const needsResize = !bgCanvas || bgCanvas.width !== canvas.width || bgCanvas.height !== canvas.height;
+        if (needsResize) {
+          ensureBackgroundBuffer();
+          markBackgroundDirty();
+        }
+        if (currentBackground === 'animated' && !menuOpen && !isHidden) {
+          backgroundTickAccumulator += simulatedMsSinceBgTick;
+          if (backgroundTickAccumulator >= backgroundTickMs) {
+            backgroundTickAccumulator = 0;
+            markBackgroundDirty();
           }
-        } else {
-          const bgEntry = backgroundImages[currentBackground];
-          if (bgEntry && bgEntry.ready) {
-            const img = bgEntry.image;
-            const scale = Math.max(canvas.width / img.width, (canvas.height - settings.groundHeight) / img.height);
-            const drawW = img.width * scale;
-            const drawH = img.height * scale;
-            const dx = (canvas.width - drawW) / 2;
-            const dy = (canvas.height - settings.groundHeight - drawH) / 2;
-            ctx.drawImage(img, dx, dy, drawW, drawH);
-            // subtle overlay
-            const fade = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            fade.addColorStop(0, 'rgba(15, 23, 42, 0.05)');
-            fade.addColorStop(1, 'rgba(15, 23, 42, 0.2)');
-            ctx.fillStyle = fade;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          } else {
-            drawGradientSky();
-          }
+        }
+        if (bgDirty) {
+          renderBackgroundFrame(!menuOpen && !isHidden);
+        }
+        if (bgCanvas) {
+          ctx.drawImage(bgCanvas, 0, 0, canvas.width, canvas.height);
         }
       }
 
-      function drawGradientSky() {
+      function drawGradientSky(targetCtx = ctx) {
         const theme = currentThemeState || getBlendedTheme();
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const w = targetCtx.canvas ? targetCtx.canvas.width : canvas.width;
+        const h = targetCtx.canvas ? targetCtx.canvas.height : canvas.height;
+        const gradient = targetCtx.createLinearGradient(0, 0, 0, h);
         const stops = theme.skyStops;
         const positions = [0, 0.42, 0.74, 1];
         stops.forEach((stop, index) => {
           gradient.addColorStop(positions[index] ?? index / Math.max(1, stops.length - 1), rgbaToString(stop));
         });
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        targetCtx.fillStyle = gradient;
+        targetCtx.fillRect(0, 0, w, h);
 
-        const glow = ctx.createRadialGradient(
+        const glow = targetCtx.createRadialGradient(
           canvas.width * 0.22,
           canvas.height * 0.18,
           18,
@@ -4499,30 +4517,70 @@
         );
         glow.addColorStop(0, rgbaToString(theme.glow));
         glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        targetCtx.fillStyle = glow;
+        targetCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const sweepX = (Math.sin(skyPulse * 0.00065) * 0.5 + 0.5) * canvas.width;
-        const sweep = ctx.createLinearGradient(sweepX - canvas.width, 0, sweepX + canvas.width, canvas.height);
+        const sweepX = (Math.sin(skyPulse * 0.00065) * 0.5 + 0.5) * w;
+        const sweep = targetCtx.createLinearGradient(sweepX - w, 0, sweepX + w, h);
         const hazeColor = rgbaToString(theme.haze);
         sweep.addColorStop(0, 'rgba(255, 255, 255, 0)');
         sweep.addColorStop(0.45, hazeColor);
         sweep.addColorStop(0.55, hazeColor);
         sweep.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.globalAlpha = 0.7;
-        ctx.fillStyle = sweep;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.globalAlpha = 1;
+        targetCtx.globalAlpha = 0.7;
+        targetCtx.fillStyle = sweep;
+        targetCtx.fillRect(0, 0, w, h);
+        targetCtx.globalAlpha = 1;
 
         const horizonPulse = (Math.sin(skyPulse * 0.00045) * 0.5 + 0.5) * 0.14 + 0.08;
-        const horizon = ctx.createLinearGradient(0, canvas.height * 0.28, 0, canvas.height * 0.7);
+        const horizon = targetCtx.createLinearGradient(0, h * 0.28, 0, h * 0.7);
         horizon.addColorStop(0, 'rgba(255, 255, 255, 0)');
         horizon.addColorStop(0.5, rgbaToString(mixRgba(theme.glow, theme.haze, 0.5)));
         horizon.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.globalAlpha = horizonPulse;
-        ctx.fillStyle = horizon;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.globalAlpha = 1;
+        targetCtx.globalAlpha = horizonPulse;
+        targetCtx.fillStyle = horizon;
+        targetCtx.fillRect(0, 0, w, h);
+        targetCtx.globalAlpha = 1;
+      }
+
+      function renderBackgroundFrame(animateBg) {
+        ensureBackgroundBuffer();
+        if (!bgCtx) {
+          return;
+        }
+        bgCtx.save();
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        bgCtx.restore();
+
+        const isHidden = document.hidden;
+        if (currentBackground === 'animated') {
+          drawGradientSky(bgCtx);
+          if (!menuOpen && !isHidden) {
+            drawAuroraBands(animateBg, bgCtx);
+            drawStars(animateBg, bgCtx);
+            drawParallaxRidges(animateBg, bgCtx);
+          }
+        } else {
+          const bgEntry = backgroundImages[currentBackground];
+          if (bgEntry && bgEntry.ready) {
+            const img = bgEntry.image;
+            const scale = Math.max(bgCanvas.width / img.width, (bgCanvas.height - settings.groundHeight) / img.height);
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+            const dx = (bgCanvas.width - drawW) / 2;
+            const dy = (bgCanvas.height - settings.groundHeight - drawH) / 2;
+            bgCtx.drawImage(img, dx, dy, drawW, drawH);
+            const fade = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height);
+            fade.addColorStop(0, 'rgba(15, 23, 42, 0.05)');
+            fade.addColorStop(1, 'rgba(15, 23, 42, 0.2)');
+            bgCtx.fillStyle = fade;
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+          } else {
+            drawGradientSky(bgCtx);
+          }
+        }
+        bgDirty = false;
       }
 
       function drawPipes() {
@@ -4796,9 +4854,9 @@
           steps += 1;
         }
         // If we hit the step cap, keep leftover time for the next frame instead of dropping it
-        simulatedMsSinceBgTick = 0;
 
         draw();
+        simulatedMsSinceBgTick = 0;
         if (state.running) {
           rafId = requestAnimationFrame(loop);
         } else {
